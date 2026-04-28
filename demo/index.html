@@ -1,0 +1,3138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Settlement OS — Property Settlement & Investment Platform</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: { brand: { 600: '#4f46e5', 700: '#4338ca' } }
+    }
+  }
+}
+</script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+  .fade-in { animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+  .pulse-dot { animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .progress-bar { transition: width 0.6s ease; }
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: #f1f5f9; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+</style>
+</head>
+<body class="bg-gray-50 text-gray-900 antialiased">
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     APP STATE & DATA
+════════════════════════════════════════════════════════════════════════════ -->
+<script>
+const MOCK_USERS = [
+  { id:'u1', name:'Jane Cooper', role:'BUYER_CONVEYANCER', firm:'Cooper Legal' },
+  { id:'u2', name:'Michael Torres', role:'BUYER', firm:null },
+  { id:'u3', name:'Sarah Chen', role:'SELLER', firm:null },
+  { id:'u4', name:'David Walsh', role:'SELLER_CONVEYANCER', firm:'Walsh & Associates' },
+  { id:'u5', name:'Emma Wilson', role:'AGENT', firm:'Wilson Realty' },
+  { id:'u6', name:'Admin User', role:'ADMIN', firm:'Settlement OS' },
+];
+
+const MOCK_DEALS = [
+  {
+    id:'d1', referenceNo:'PSOS-2024-0042', status:'ACTIVE',
+    address:'14 Glenelg Street, Norwood SA 5067',
+    titleRef:'CT 6142/456', state:'SA', price:850000, deposit:85000,
+    depositPaid: true, daysToSettle:14,
+    contractDate:'15 Mar 2024', settlementDate:'15 May 2024',
+    parties:[
+      { name:'Jane Cooper', role:"Buyer's Conveyancer", initials:'JC', color:'bg-indigo-100 text-indigo-600' },
+      { name:'Michael Torres', role:'Buyer', initials:'MT', color:'bg-blue-100 text-blue-600' },
+      { name:'Sarah Chen', role:'Seller', initials:'SC', color:'bg-rose-100 text-rose-600' },
+      { name:'David Walsh', role:"Seller's Conveyancer", initials:'DW', color:'bg-amber-100 text-amber-600' },
+      { name:'Emma Wilson', role:'Agent', initials:'EW', color:'bg-green-100 text-green-600' },
+    ],
+    conditions:[
+      { id:'c1', name:'Finance Approval', type:'BOOLEAN_FLAG', status:'MET', assignedTo:"Buyer's Conveyancer", metAt:'20 Mar', desc:'Buyer finance formally approved by lender' },
+      { id:'c2', name:'Building Inspection', type:'DOCUMENT_UPLOAD', status:'MET', assignedTo:'Buyer', metAt:'22 Mar', desc:'Satisfactory building report required' },
+      { id:'c3', name:'Pest Inspection', type:'DOCUMENT_UPLOAD', status:'MET', assignedTo:'Buyer', metAt:'22 Mar', desc:'Clear pest inspection report required' },
+      { id:'c4', name:'Title Search', type:'APPROVAL', status:'PENDING', assignedTo:"Seller's Conveyancer", desc:'Title clear of encumbrances' },
+      { id:'c5', name:'Vendor Disclosure Statement', type:'DOCUMENT_UPLOAD', status:'PENDING', assignedTo:"Seller's Conveyancer", desc:'Vendor disclosure statement served and cooling-off period elapsed' },
+    ],
+    milestones:[
+      { name:'Contract Signed', status:'COMPLETE', date:'15 Mar' },
+      { name:'Deposit Paid', status:'COMPLETE', date:'17 Mar' },
+      { name:'Finance Approved', status:'COMPLETE', date:'20 Mar' },
+      { name:'Building & Pest Inspections', status:'COMPLETE', date:'22 Mar' },
+      { name:'Title Check & Form 1', status:'IN_PROGRESS', date:null },
+      { name:'Settlement Booked', status:'PENDING', date:null },
+      { name:'Keys Released', status:'PENDING', date:null },
+    ],
+    activity:[
+      { id:'a1', type:'CONDITION_MET', msg:'Jane Cooper marked "Finance Approval" as complete', role:"Buyer's Conveyancer", time:'2 days ago', icon:'✅', bg:'bg-green-50 border-green-100' },
+      { id:'a2', type:'DOCUMENT_UPLOADED', msg:'Michael Torres uploaded "Building Inspection Report.pdf"', role:'Buyer', time:'2 days ago', icon:'📎', bg:'bg-white border-gray-200' },
+      { id:'a3', type:'DOCUMENT_UPLOADED', msg:'Michael Torres uploaded "Pest Inspection Report.pdf"', role:'Buyer', time:'2 days ago', icon:'📎', bg:'bg-white border-gray-200' },
+      { id:'a4', type:'CONDITION_MET', msg:'Jane Cooper marked "Building Inspection" as complete', role:"Buyer's Conveyancer", time:'2 days ago', icon:'✅', bg:'bg-green-50 border-green-100' },
+      { id:'a5', type:'COMMENT', msg:'Waiting on David to confirm title search — should be clear this week.', role:"Buyer's Conveyancer", name:'Jane Cooper', time:'1 day ago', icon:'💬', bg:'bg-white border-gray-200' },
+      { id:'a6', type:'PARTY_ADDED', msg:'Emma Wilson was added as Real Estate Agent', role:'System', time:'15 Mar', icon:'👤', bg:'bg-white border-gray-200' },
+    ],
+    documents:[
+      { name:'Contract of Sale', type:'CONTRACT', size:'2.4 MB', verified:true, uploaded:'15 Mar', by:'Jane Cooper' },
+      { name:'Finance Approval Letter', type:'FINANCE_APPROVAL', size:'340 KB', verified:true, uploaded:'20 Mar', by:'Michael Torres' },
+      { name:'Building Inspection Report', type:'BUILDING_INSPECTION', size:'5.1 MB', verified:false, uploaded:'22 Mar', by:'Michael Torres' },
+      { name:'Pest Inspection Report', type:'PEST_INSPECTION', size:'1.8 MB', verified:false, uploaded:'22 Mar', by:'Michael Torres' },
+    ],
+    notes:'Extended settlement requested by buyer — lender requires additional time.'
+  },
+  {
+    id:'d2', referenceNo:'PSOS-2024-0041', status:'READY',
+    address:'7 Brougham Place, North Adelaide SA 5006',
+    titleRef:'CT 5891/234', state:'SA', price:1250000, deposit:125000,
+    depositPaid:true, daysToSettle:3,
+    contractDate:'1 Mar 2024', settlementDate:'3 May 2024',
+    parties:[
+      { name:'Jane Cooper', role:"Buyer's Conveyancer", initials:'JC', color:'bg-indigo-100 text-indigo-600' },
+      { name:'David Walsh', role:"Seller's Conveyancer", initials:'DW', color:'bg-amber-100 text-amber-600' },
+    ],
+    conditions:[
+      { id:'c1', name:'Finance Approval', type:'BOOLEAN_FLAG', status:'MET', assignedTo:"Buyer's Conveyancer", metAt:'10 Mar', desc:'' },
+      { id:'c2', name:'Building Inspection', type:'DOCUMENT_UPLOAD', status:'MET', assignedTo:'Buyer', metAt:'12 Mar', desc:'' },
+      { id:'c3', name:'Title Search', type:'APPROVAL', status:'MET', assignedTo:"Seller's Conveyancer", metAt:'15 Mar', desc:'' },
+      { id:'c4', name:'Form 1 Disclosure', type:'DOCUMENT_UPLOAD', status:'MET', assignedTo:"Seller's Conveyancer", metAt:'5 Mar', desc:'' },
+    ],
+    milestones:[
+      { name:'Contract Signed', status:'COMPLETE', date:'1 Mar' },
+      { name:'Deposit Paid', status:'COMPLETE', date:'3 Mar' },
+      { name:'Finance Approved', status:'COMPLETE', date:'10 Mar' },
+      { name:'Inspections Complete', status:'COMPLETE', date:'12 Mar' },
+      { name:'Title Checked', status:'COMPLETE', date:'15 Mar' },
+      { name:'Settlement Booked', status:'COMPLETE', date:'20 Mar' },
+      { name:'Keys Released', status:'PENDING', date:null },
+    ],
+    activity:[
+      { id:'a1', type:'SETTLEMENT_APPROVED', msg:'David Walsh approved deal for settlement', role:"Seller's Conveyancer", time:'1 day ago', icon:'🔐', bg:'bg-indigo-50 border-indigo-100' },
+      { id:'a2', type:'STATUS_CHANGED', msg:'Deal status changed from ACTIVE to READY', role:'System', time:'1 day ago', icon:'🔄', bg:'bg-blue-50 border-blue-100' },
+    ],
+    documents:[
+      { name:'Contract of Sale', type:'CONTRACT', size:'2.1 MB', verified:true, uploaded:'1 Mar', by:'Jane Cooper' },
+      { name:'Finance Letter', type:'FINANCE_APPROVAL', size:'290 KB', verified:true, uploaded:'10 Mar', by:'Jane Cooper' },
+    ],
+    notes:''
+  },
+  {
+    id:'d3', referenceNo:'PSOS-2024-0039', status:'SETTLED',
+    address:'22 Prospect Road, Prospect SA 5082',
+    titleRef:'CT 7201/109', state:'SA', price:680000, deposit:68000,
+    depositPaid:true, daysToSettle:null,
+    contractDate:'15 Feb 2024', settlementDate:'15 Apr 2024',
+    parties:[
+      { name:'Jane Cooper', role:"Buyer's Conveyancer", initials:'JC', color:'bg-indigo-100 text-indigo-600' },
+    ],
+    conditions:[
+      { id:'c1', name:'Finance Approval', type:'BOOLEAN_FLAG', status:'MET', assignedTo:"Buyer's Conveyancer", metAt:'22 Feb', desc:'' },
+      { id:'c2', name:'Building Inspection', type:'DOCUMENT_UPLOAD', status:'MET', assignedTo:'Buyer', metAt:'24 Feb', desc:'' },
+      { id:'c3', name:'Title Search', type:'APPROVAL', status:'MET', assignedTo:"Seller's Conveyancer", metAt:'1 Mar', desc:'' },
+    ],
+    milestones:[
+      { name:'Contract Signed', status:'COMPLETE', date:'15 Feb' },
+      { name:'Deposit Paid', status:'COMPLETE', date:'17 Feb' },
+      { name:'Finance Approved', status:'COMPLETE', date:'22 Feb' },
+      { name:'Inspections Complete', status:'COMPLETE', date:'24 Feb' },
+      { name:'Title Checked', status:'COMPLETE', date:'1 Mar' },
+      { name:'Settlement Booked', status:'COMPLETE', date:'5 Mar' },
+      { name:'Keys Released', status:'COMPLETE', date:'15 Apr' },
+    ],
+    activity:[
+      { id:'a1', type:'SETTLEMENT_EXECUTED', msg:'Settlement completed. PEXA lodgement ref: AU-2024-78901', role:'System', time:'15 Apr', icon:'🏠', bg:'bg-green-50 border-green-200' },
+    ],
+    documents:[],
+    notes:''
+  },
+  {
+    id:'d4', referenceNo:'PSOS-2024-0043', status:'INIT',
+    address:'3 Hutt Street, Adelaide SA 5000',
+    titleRef:'', state:'SA', price:595000, deposit:59500,
+    depositPaid:false, daysToSettle:45,
+    contractDate:'', settlementDate:'8 Jun 2024',
+    parties:[
+      { name:'Jane Cooper', role:"Buyer's Conveyancer", initials:'JC', color:'bg-indigo-100 text-indigo-600' },
+    ],
+    conditions:[],
+    milestones:[],
+    activity:[
+      { id:'a1', type:'SYSTEM', msg:'Deal created by Jane Cooper', role:'System', time:'Today', icon:'⚙', bg:'bg-white border-gray-200' },
+    ],
+    documents:[],
+    notes:'New instruction — awaiting contract execution.'
+  }
+];
+
+const MOCK_LISTINGS = [
+  {
+    id:'l1', poolId:'p1', status:'LIVE', submittedBy:'Emma Wilson', adminNotes:[],
+    address:'12 Campbell Parade', suburb:'Bondi Beach', postcode:'2026', state:'NSW',
+    price:2150000, type:'Apartment', beds:3, baths:2, parking:1,
+    landSize:null, yearBuilt:2017, rentalYield:3.9, weeklyRent:1620,
+    description:'Iconic beachfront apartment with uninterrupted ocean views from every room. Architecturally designed with floor-to-ceiling glass, premium stone finishes and a wraparound terrace.',
+    features:['Ocean Views','Rooftop Pool','Concierge','Secure Parking','Smart Home'],
+    color:'from-cyan-400 to-blue-600', emoji:'🏄', listingRef:'REA-NSW-90124',
+  },
+  {
+    id:'l2', poolId:'p2', status:'LIVE', submittedBy:'Emma Wilson', adminNotes:[],
+    address:'88 Toorak Road', suburb:'South Yarra', postcode:'3141', state:'VIC',
+    price:1640000, type:'Townhouse', beds:4, baths:3, parking:2,
+    landSize:290, yearBuilt:2021, rentalYield:4.1, weeklyRent:1295,
+    description:'Architecturally striking townhouse in the heart of South Yarra. Designer kitchen, private rooftop terrace with city skyline views, and integrated smart-home automation throughout.',
+    features:['City Views','Rooftop Terrace','EV Charging','Designer Kitchen','Smart Home'],
+    color:'from-amber-400 to-orange-600', emoji:'🏙️', listingRef:'REA-VIC-90125',
+  },
+  {
+    id:'l3', poolId:'p3', status:'LIVE', submittedBy:'Emma Wilson', adminNotes:[],
+    address:'5/42 Orchid Avenue', suburb:'Surfers Paradise', postcode:'4217', state:'QLD',
+    price:720000, type:'Apartment', beds:2, baths:2, parking:1,
+    landSize:null, yearBuilt:2018, rentalYield:6.2, weeklyRent:860,
+    description:'High-yield holiday apartment in the heart of Surfers Paradise. Strong short-stay rental history, resort-style facilities and direct beach access. Managed by on-site letting agent.',
+    features:['Beach Access','Resort Pool','Spa','Gym','Managed Letting'],
+    color:'from-yellow-400 to-orange-500', emoji:'🌞', listingRef:'REA-QLD-90126',
+  },
+  {
+    id:'l4', poolId:'p4', status:'LIVE', submittedBy:'Emma Wilson', adminNotes:[],
+    address:'19 Marine Parade', suburb:'Cottesloe', postcode:'6011', state:'WA',
+    price:2800000, type:'House', beds:5, baths:3, parking:3,
+    landSize:680, yearBuilt:2015, rentalYield:3.5, weeklyRent:1890,
+    description:'Premium beachside residence in Cottesloe, one of Perth\'s most sought-after suburbs. Entertainers\' dream with infinity pool, outdoor kitchen and panoramic Indian Ocean views.',
+    features:['Ocean Views','Infinity Pool','Outdoor Kitchen','Triple Garage','Solar 13kW'],
+    color:'from-indigo-400 to-blue-700', emoji:'🌊', listingRef:'REA-WA-90127',
+  },
+  {
+    id:'l5', poolId:'p5', status:'LIVE', submittedBy:'Emma Wilson', adminNotes:[],
+    address:'14 Glenelg Street', suburb:'Norwood', postcode:'5067', state:'SA',
+    price:920000, type:'House', beds:4, baths:2, parking:2,
+    landSize:620, yearBuilt:1998, rentalYield:4.2, weeklyRent:745,
+    description:'Commanding double-storey home in blue-chip Norwood. Open-plan living, alfresco entertaining and north-facing pool. Walking distance to The Parade dining and retail precinct.',
+    features:['Swimming Pool','Ducted A/C','Double Garage','Alfresco','Solar 6.6kW'],
+    color:'from-rose-400 to-pink-600', emoji:'🏡', listingRef:'REA-SA-90128',
+  },
+  {
+    id:'l6', poolId:'p6', status:'LIVE', submittedBy:'Emma Wilson', adminNotes:[],
+    address:'3 Salamanca Place', suburb:'Battery Point', postcode:'7004', state:'TAS',
+    price:890000, type:'House', beds:3, baths:2, parking:1,
+    landSize:310, yearBuilt:1880, rentalYield:5.6, weeklyRent:960,
+    description:'Beautifully restored sandstone cottage steps from the iconic Salamanca Market. Heritage-listed facade with a fully modernised interior. Exceptional short-stay and long-term rental demand.',
+    features:['Heritage Listed','Fully Renovated','Courtyard Garden','Fireplace','Steps to Salamanca'],
+    color:'from-emerald-400 to-teal-600', emoji:'🏛️', listingRef:'REA-TAS-90129',
+  },
+  {
+    id:'l7', poolId:'p7', status:'LIVE', submittedBy:'Emma Wilson', adminNotes:[],
+    address:'Jl. Pantai Berawa No. 12', suburb:'Canggu', postcode:'80361', state:'BALI',
+    price:620000, type:'Villa', beds:3, baths:3, parking:1,
+    landSize:450, yearBuilt:2022, rentalYield:9.8, weeklyRent:1180,
+    description:'Architect-designed tropical villa in Canggu\'s most sought-after surf corridor. Private infinity pool, open-plan living pavilion, and lush rice-field views. Strong Airbnb history with a professional on-site management team.',
+    features:['Infinity Pool','Rice Field Views','Airbnb Managed','Outdoor Kitchen','Smart Home'],
+    color:'from-green-400 to-emerald-600', emoji:'🌴', listingRef:'BALI-CANG-90130',
+  },
+  {
+    id:'l8', poolId:'p8', status:'LIVE', submittedBy:'Emma Wilson', adminNotes:[],
+    address:'Jl. Laksmana Gang 7', suburb:'Seminyak', postcode:'80361', state:'BALI',
+    price:480000, type:'Villa', beds:4, baths:4, parking:2,
+    landSize:380, yearBuilt:2020, rentalYield:10.5, weeklyRent:975,
+    description:'Boutique four-bedroom villa in the heart of Seminyak\'s premium hospitality strip. Steps from Ku De Ta and Potato Head Beach Club. Fully licensed as a commercial villa with a proven occupancy rate above 78%.',
+    features:['Commercial Licence','Steps to Beach Clubs','Private Pool','Rooftop Terrace','Managed Letting'],
+    color:'from-pink-400 to-rose-600', emoji:'🏖️', listingRef:'BALI-SEMI-90131',
+  },
+  {
+    id:'l9', poolId:'p9', status:'LIVE', submittedBy:'Emma Wilson', adminNotes:[],
+    address:'Jl. Uluwatu Selatan No. 88', suburb:'Uluwatu', postcode:'80362', state:'BALI',
+    price:395000, type:'Villa', beds:2, baths:2, parking:1,
+    landSize:280, yearBuilt:2023, rentalYield:11.9, weeklyRent:880,
+    description:'Cliffside villa perched above the Indian Ocean with panoramic sunset views. Brand-new construction to ISO resort standards, with a 25-metre infinity pool cantilevered over the cliff edge. Among the highest short-stay yields in Uluwatu.',
+    features:['Ocean Cliff Views','25m Infinity Pool','New Build 2023','Sunset Terrace','Boutique Resort Standard'],
+    color:'from-sky-400 to-indigo-600', emoji:'🌊', listingRef:'BALI-ULUW-90132',
+  },
+  {
+    id:'l10', poolId:null, status:'PENDING', submittedBy:'Tom Richards', adminNotes:[],
+    address:'12/88 Exhibition Street', suburb:'Melbourne CBD', postcode:'3000', state:'VIC',
+    price:980000, type:'Apartment', beds:2, baths:2, parking:1,
+    landSize:null, yearBuilt:2019, rentalYield:5.1, weeklyRent:960,
+    description:'Sleek two-bedroom apartment on the 34th floor of a landmark Melbourne CBD tower. Floor-to-ceiling glazing with sweeping city skyline and Yarra River views. Premium concierge building with rooftop pool and gym.',
+    features:['City Views','Rooftop Pool','Concierge','Gym','Secure Parking'],
+    color:'from-violet-400 to-purple-600', emoji:'🏢', listingRef:'REA-VIC-90133',
+  },
+  {
+    id:'l11', poolId:null, status:'PENDING', submittedBy:'Wayan Sukerta', adminNotes:[
+      { from:'Wayan Sukerta', text:'Hi, I\'ve submitted our villa in Ubud for listing. It has a verified rental history and all permits are in order. Please let me know if you need any additional documents.', time:'2 days ago' },
+    ],
+    address:'Jl. Raya Ubud No. 55', suburb:'Ubud', postcode:'80571', state:'BALI',
+    price:310000, type:'Villa', beds:3, baths:3, parking:1,
+    landSize:520, yearBuilt:2019, rentalYield:12.4, weeklyRent:740,
+    description:'Serene three-bedroom villa nestled in the rice terraces of Ubud. Traditional Balinese architecture with a contemporary interior, private plunge pool, and daily breakfast included. Strong year-round occupancy driven by the Ubud wellness and arts tourism market.',
+    features:['Rice Terrace Views','Plunge Pool','Breakfast Included','Traditional Architecture','Walking Distance to Ubud Centre'],
+    color:'from-lime-400 to-green-600', emoji:'🌿', listingRef:'BALI-UBUD-90134',
+  },
+  {
+    id:'l12', poolId:null, status:'LIVE', submittedBy:'Emma Wilson', adminNotes:[], saleType:'buy_now',
+    address:'45 Harbour View Drive', suburb:'Mosman', postcode:'2088', state:'NSW',
+    price:4200000, type:'House', beds:5, baths:4, parking:3,
+    landSize:720, yearBuilt:2016, rentalYield:null, weeklyRent:null,
+    description:'Grand family residence in prestigious Mosman with uninterrupted Sydney Harbour views. Architect-designed entertainer featuring a resort-style pool, home theatre, separate guest suite, and private landscaped gardens. One of the last remaining large blocks in this blue-chip suburb.',
+    features:['Harbour Views','Resort Pool','Home Theatre','Triple Garage','Guest Suite'],
+    color:'from-sky-400 to-cyan-600', emoji:'⛵', listingRef:'REA-NSW-90140',
+  },
+  {
+    id:'l13', poolId:null, status:'LIVE', submittedBy:'Emma Wilson', adminNotes:[], saleType:'buy_now',
+    address:'15/200 St Kilda Road', suburb:'St Kilda', postcode:'3182', state:'VIC',
+    price:1190000, type:'Apartment', beds:3, baths:2, parking:2,
+    landSize:null, yearBuilt:2022, rentalYield:null, weeklyRent:null,
+    description:'Brand-new luxury apartment on the iconic St Kilda Road with sweeping bay and city views. Designed by a Pritzker-nominated studio, featuring premium European appliances, floor-to-ceiling glazing, and 24/7 concierge in a boutique 12-residence building.',
+    features:['Bay Views','24/7 Concierge','European Appliances','Rooftop Garden','Two Car Parks'],
+    color:'from-violet-400 to-purple-600', emoji:'🌃', listingRef:'REA-VIC-90141',
+  },
+  {
+    id:'l14', poolId:'p10', status:'LIVE', submittedBy:'Emma Wilson', adminNotes:[], saleType:'both',
+    address:'Jl. Pantai Berawa No. 50', suburb:'Canggu', postcode:'80361', state:'BALI',
+    price:920000, type:'Villa', beds:5, baths:5, parking:2,
+    landSize:680, yearBuilt:2021, rentalYield:9.2, weeklyRent:1650,
+    description:'Expansive five-bedroom luxury villa in prime Canggu beachside position. Full commercial villa licence, professional management in place, and consistently achieving 85%+ annual occupancy. Available for full direct purchase or fractional investment through our pooled fund.',
+    features:['Beachside','Commercial Licence','Private Pool','Fully Managed','85% Occupancy'],
+    color:'from-teal-400 to-emerald-600', emoji:'🏝️', listingRef:'BALI-CANG-90142',
+  },
+  {
+    id:'l15', poolId:null, status:'LIVE', submittedBy:'Sarah Chen', adminNotes:[], saleType:'buy_now',
+    address:'7 Noosa Sound Drive', suburb:'Noosa Heads', postcode:'4567', state:'QLD',
+    price:2750000, type:'House', beds:4, baths:3, parking:2,
+    landSize:540, yearBuilt:2019, rentalYield:null, weeklyRent:null,
+    description:'Architecturally designed waterfront home on the exclusive Noosa Sound canal with direct boat access. Bi-fold glass walls dissolve the boundary between indoor and outdoor living, flowing to a private pontoon and infinity pool overlooking calm waterways.',
+    features:['Canal Frontage','Private Pontoon','Infinity Pool','Boat Access','Glass Walls'],
+    color:'from-orange-400 to-amber-500', emoji:'🚤', listingRef:'REA-QLD-90143',
+  },
+];
+
+const MOCK_POOLS = [
+  { id:'p1', listingId:'l1', name:'Bondi Beachfront Fund', targetRaise:1075000, amountRaised:645000, minInvestment:10000, expectedYield:8.1, term:5, investorCount:41, maxInvestors:70, payoutFrequency:'Quarterly', status:'OPEN', currency:'AUD' },
+  { id:'p2', listingId:'l2', name:'South Yarra Townhouse Syndicate', targetRaise:820000, amountRaised:820000, minInvestment:10000, expectedYield:7.9, term:7, investorCount:52, maxInvestors:52, payoutFrequency:'Quarterly', status:'FUNDED', currency:'AUD' },
+  { id:'p3', listingId:'l3', name:'Gold Coast Holiday Trust', targetRaise:360000, amountRaised:216000, minInvestment:2500, expectedYield:10.4, term:3, investorCount:28, maxInvestors:50, payoutFrequency:'Monthly', status:'OPEN', currency:'AUD' },
+  { id:'p4', listingId:'l4', name:'Cottesloe Oceanfront Pool', targetRaise:1400000, amountRaised:350000, minInvestment:10000, expectedYield:7.6, term:7, investorCount:19, maxInvestors:60, payoutFrequency:'Quarterly', status:'OPEN', currency:'AUD' },
+  { id:'p5', listingId:'l5', name:'Norwood Residential Fund', targetRaise:460000, amountRaised:414000, minInvestment:5000, expectedYield:8.4, term:5, investorCount:39, maxInvestors:40, payoutFrequency:'Monthly', status:'OPEN', currency:'AUD' },
+  { id:'p6', listingId:'l6', name:'Salamanca Heritage Trust', targetRaise:445000, amountRaised:0, minInvestment:5000, expectedYield:9.8, term:5, investorCount:0, maxInvestors:45, payoutFrequency:'Quarterly', status:'OPEN', currency:'AUD' },
+  { id:'p7', listingId:'l7', name:'Canggu Surf Villa Fund', targetRaise:310000, amountRaised:124000, minInvestment:5000, expectedYield:12.1, term:5, investorCount:17, maxInvestors:40, payoutFrequency:'Monthly', status:'OPEN', currency:'AUD' },
+  { id:'p8', listingId:'l8', name:'Seminyak Boutique Pool', targetRaise:240000, amountRaised:192000, minInvestment:2500, expectedYield:13.4, term:3, investorCount:34, maxInvestors:40, payoutFrequency:'Monthly', status:'OPEN', currency:'AUD' },
+  { id:'p9', listingId:'l9', name:'Uluwatu Clifftop Trust', targetRaise:200000, amountRaised:48000, minInvestment:2500, expectedYield:14.2, term:5, investorCount:11, maxInvestors:35, payoutFrequency:'Monthly', status:'OPEN', currency:'AUD' },
+  { id:'p10', listingId:'l14', name:'Canggu Beachside Villa Fund', targetRaise:460000, amountRaised:92000, minInvestment:5000, expectedYield:11.5, term:5, investorCount:12, maxInvestors:50, payoutFrequency:'Monthly', status:'OPEN', currency:'AUD' },
+];
+
+const PLATFORM_FEE_RATE = 0.02; // 2%
+const OWNER_WALLETS = {
+  AUD: 'BSB 062-000 · Acc 1234 5678 (Settlement OS Trust)',
+  BTC: '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa',
+  ETH: '0x742d35Cc6634C0532925a3b8D4C5f81a8c6E89bF',
+  SOL: '9xKXBmA5UtE4vNXuBwM3p2qJzY7dR6fGhT1nCsWiPH',
+};
+
+const CRYPTO_PRICES = { BTC: 68420, ETH: 3518, SOL: 182 };
+const CRYPTO_SYMBOLS = { BTC: '₿', ETH: 'Ξ', SOL: '◎' };
+const CRYPTO_COLORS  = { BTC: 'text-orange-500', ETH: 'text-indigo-500', SOL: 'text-purple-500' };
+const CRYPTO_NAMES   = { BTC: 'Bitcoin', ETH: 'Ethereum', SOL: 'Solana' };
+
+// ── App State ──────────────────────────────────────────────────────────────
+let APP = {
+  view: 'landing',        // landing | browse | login | dashboard | deals | workspace | conveyancer | documents | listings | invest | portfolio
+  landingTab: 'listings',
+  currentUser: null,
+  currentDeal: null,
+  deals: JSON.parse(JSON.stringify(MOCK_DEALS)),
+  toast: null,
+  toastTimer: null,
+  workspaceTab: 'conditions',
+  newComment: '',
+  settlementValidated: false,
+  settlementResult: null,
+  dealMessages: {},
+  messagesParty: null,
+  // Investment / listings state
+  walletConnected: false,
+  walletAddress: null,
+  walletType: null,
+  portfolio: [],
+  selectedCrypto: 'BTC',
+  showPaymentModal: false,
+  _paymentModalTab: 'wallet',
+  checkoutPaymentMethod: 'visa',
+  investPoolId: null,
+  investAmount: '',
+  listingTypeFilter: 'all',
+  listingSuburbFilter: 'all',
+  editingListingId: null,
+  editingDescription: '',
+  adminListingFilter: 'all',
+  adminMessageListingId: null,
+  adminMessageText: '',
+  platformFees: [],
+  ownerWalletBalance: { AUD: 0, BTC: 0, ETH: 0, SOL: 0 },
+  checkoutPoolId: null,
+  checkoutAmount: 0,
+  showListingForm: false,
+  buyNowListingId: null,
+  listingFormData: { address:'', suburb:'', state:'NSW', postcode:'', price:'', type:'House', beds:3, baths:2, parking:1, landSize:'', description:'', saleType:'invest' },
+};
+
+// Seed demo messages for deal d1
+APP.dealMessages['d1_David Walsh'] = [
+  { id:'m1', sender:'Jane Cooper', senderRole:'BUYER_CONVEYANCER', text:'Hi David, can you confirm when the title search will be ready? We\'re targeting settlement in two weeks.', time:'Yesterday 2:14 PM' },
+  { id:'m2', sender:'David Walsh', senderRole:'SELLER_CONVEYANCER', text:'Hi Jane, should have it back by Thursday. Nothing flagged in the preliminary checks.', time:'Yesterday 3:02 PM' },
+  { id:'m3', sender:'Jane Cooper', senderRole:'BUYER_CONVEYANCER', text:'Perfect, thanks David. Let me know if anything comes up.', time:'Yesterday 3:08 PM' },
+];
+APP.dealMessages['d1_Michael Torres'] = [
+  { id:'m4', sender:'Jane Cooper', senderRole:'BUYER_CONVEYANCER', text:'Michael, just confirming your building and pest reports have been received and reviewed. All looking good from our end.', time:'2 days ago' },
+  { id:'m5', sender:'Michael Torres', senderRole:'BUYER', text:'Great news! Thanks Jane. Do I need to do anything else before settlement?', time:'2 days ago' },
+  { id:'m6', sender:'Jane Cooper', senderRole:'BUYER_CONVEYANCER', text:'Just the title check to come back clear — David is on it. I\'ll keep you posted.', time:'2 days ago' },
+];
+APP.dealMessages['d1_Emma Wilson'] = [
+  { id:'m7', sender:'Emma Wilson', senderRole:'AGENT', text:'Hi Jane, just checking in — is everything on track for the 15 May settlement?', time:'1 day ago' },
+  { id:'m8', sender:'Jane Cooper', senderRole:'BUYER_CONVEYANCER', text:'Hi Emma, yes — conditions are largely met, just waiting on the title search. Should be clear by end of week.', time:'1 day ago' },
+];
+
+function render() {
+  document.getElementById('app').innerHTML = '';
+  const el = buildView();
+  document.getElementById('app').appendChild(el);
+}
+
+function setView(view, dealId) {
+  APP.view = view;
+  if (dealId) {
+    APP.currentDeal = APP.deals.find(d => d.id === dealId);
+    APP.workspaceTab = 'conditions';
+    APP.settlementValidated = false;
+    APP.settlementResult = null;
+    APP.messagesParty = null;
+  }
+  render();
+}
+
+function showToast(msg, type='success') {
+  APP.toast = { msg, type };
+  clearTimeout(APP.toastTimer);
+  render();
+  APP.toastTimer = setTimeout(() => { APP.toast = null; render(); }, 3000);
+}
+
+function login(role) {
+  const user = MOCK_USERS.find(u => u.role === role) || MOCK_USERS[0];
+  APP.currentUser = user;
+  APP.view = 'dashboard';
+  render();
+}
+
+function markConditionMet(dealId, condId) {
+  const deal = APP.deals.find(d => d.id === dealId);
+  const cond = deal.conditions.find(c => c.id === condId);
+  cond.status = 'MET';
+  cond.metAt = 'Just now';
+  deal.activity.unshift({
+    id: 'a'+Date.now(), type:'CONDITION_MET',
+    msg: `${APP.currentUser.name} marked "${cond.name}" as complete`,
+    role: APP.currentUser.role, time:'Just now',
+    icon:'✅', bg:'bg-green-50 border-green-100'
+  });
+  APP.currentDeal = deal;
+  APP.settlementValidated = false;
+  APP.settlementResult = null;
+  showToast(`"${cond.name}" marked as met`);
+}
+
+function addComment() {
+  const msg = APP.newComment.trim();
+  if (!msg) return;
+  const deal = APP.deals.find(d => d.id === APP.currentDeal.id);
+  deal.activity.unshift({
+    id:'a'+Date.now(), type:'COMMENT', msg,
+    role: APP.currentUser.role, name: APP.currentUser.name,
+    time:'Just now', icon:'💬', bg:'bg-white border-gray-200'
+  });
+  APP.newComment = '';
+  APP.currentDeal = deal;
+  render();
+}
+
+function validateSettlement() {
+  const deal = APP.currentDeal;
+  const pending = deal.conditions.filter(c => c.status === 'PENDING');
+  const canSettle = pending.length === 0 && deal.depositPaid;
+  APP.settlementValidated = true;
+  APP.settlementResult = { canSettle, blockers: [
+    ...pending.map(c => `"${c.name}" not yet met`),
+    ...(!deal.depositPaid ? ['Deposit not confirmed as paid'] : []),
+  ]};
+  render();
+}
+
+function approveSettlement() {
+  const deal = APP.deals.find(d => d.id === APP.currentDeal.id);
+  deal.status = 'READY';
+  deal.activity.unshift({
+    id:'a'+Date.now(), type:'SETTLEMENT_APPROVED',
+    msg:`${APP.currentUser.name} approved deal for settlement`,
+    role: APP.currentUser.role, time:'Just now',
+    icon:'🔐', bg:'bg-indigo-50 border-indigo-100'
+  });
+  APP.currentDeal = deal;
+  APP.settlementValidated = false;
+  APP.settlementResult = null;
+  showToast('Deal approved — status moved to READY ✓');
+}
+
+function executeSettlement() {
+  const deal = APP.deals.find(d => d.id === APP.currentDeal.id);
+  deal.status = 'SETTLED';
+  deal.depositPaid = true;
+  const lodgementRef = 'AU-2024-' + Math.floor(Math.random()*90000+10000);
+  deal.pexaRef = lodgementRef;
+  deal.activity.unshift({
+    id:'a'+Date.now(), type:'SETTLEMENT_EXECUTED',
+    msg:`Settlement completed. PEXA lodgement ref: ${lodgementRef}`,
+    role:'System', time:'Just now',
+    icon:'🏠', bg:'bg-green-50 border-green-200'
+  });
+  APP.currentDeal = deal;
+  APP.settlementValidated = false;
+  APP.settlementResult = null;
+  showToast('Settlement executed — PEXA notified.');
+}
+
+function connectWallet(type) {
+  const addr = type === 'phantom'
+    ? '7xKX' + Math.random().toString(36).substring(2,8).toUpperCase() + 'sol'
+    : '0x' + Array.from({length:8}, ()=>Math.floor(Math.random()*16).toString(16)).join('') + '...';
+  APP.walletConnected = true;
+  APP.walletAddress = addr;
+  APP.walletType = type;
+  APP.showPaymentModal = false;
+  showToast('Wallet connected: ' + addr);
+}
+
+function investInPool(poolId) {
+  const amt = parseFloat(APP.investAmount);
+  const pool = MOCK_POOLS.find(p => p.id === poolId);
+  if (!amt || amt < pool.minInvestment) { showToast('Min investment is $' + pool.minInvestment.toLocaleString(), 'error'); return; }
+  if (pool.status === 'FUNDED') { showToast('This pool is fully funded', 'error'); return; }
+
+  const feeAUD    = parseFloat((amt * PLATFORM_FEE_RATE).toFixed(2));
+  const netAmt    = parseFloat((amt - feeAUD).toFixed(2));
+  const feeCrypto = parseFloat(cryptoEquiv(feeAUD, APP.selectedCrypto));
+
+  pool.amountRaised = Math.min(pool.amountRaised + netAmt, pool.targetRaise);
+  if (pool.amountRaised >= pool.targetRaise) pool.status = 'FUNDED';
+  pool.investorCount += 1;
+
+  APP.portfolio.push({ poolId, poolName: pool.name, amount: amt, crypto: APP.selectedCrypto, date: new Date().toLocaleDateString('en-AU'), expectedYield: pool.expectedYield });
+
+  APP.platformFees.push({
+    id: 'fee_' + Date.now(),
+    poolId, poolName: pool.name,
+    grossAUD: amt, feeAUD, netAUD: netAmt,
+    feeCrypto, crypto: APP.selectedCrypto,
+    date: new Date().toLocaleDateString('en-AU'),
+  });
+  APP.ownerWalletBalance.AUD    = parseFloat((APP.ownerWalletBalance.AUD + feeAUD).toFixed(2));
+  APP.ownerWalletBalance[APP.selectedCrypto] = parseFloat(
+    (APP.ownerWalletBalance[APP.selectedCrypto] + feeCrypto).toFixed(8)
+  );
+
+  APP.investAmount = '';
+  const pmLabels = { visa:'Visa card', mastercard:'Mastercard', paypal:'PayPal', crypto:'crypto wallet', bank:'bank transfer' };
+  showToast(`Investment confirmed via ${pmLabels[APP.checkoutPaymentMethod]||'payment'} — 2% fee A$${feeAUD.toLocaleString()} applied`);
+}
+
+function startEditDescription(listingId) {
+  const listing = MOCK_LISTINGS.find(l => l.id === listingId);
+  APP.editingListingId = listingId;
+  APP.editingDescription = listing.description;
+  render();
+}
+
+function saveDescription(listingId) {
+  const listing = MOCK_LISTINGS.find(l => l.id === listingId);
+  listing.description = APP.editingDescription.trim();
+  APP.editingListingId = null;
+  APP.editingDescription = '';
+  showToast('Description updated');
+}
+
+function cancelEditDescription() {
+  APP.editingListingId = null;
+  APP.editingDescription = '';
+  render();
+}
+
+function cryptoEquiv(audAmount, crypto) {
+  const val = audAmount / CRYPTO_PRICES[crypto];
+  if (crypto === 'BTC') return val.toFixed(6);
+  if (crypto === 'ETH') return val.toFixed(4);
+  return val.toFixed(2);
+}
+
+function openCheckout(poolId, inputId) {
+  const pool = MOCK_POOLS.find(p => p.id === poolId);
+  const amt = parseFloat(document.getElementById(inputId)?.value);
+  if (!amt || amt < pool.minInvestment) { showToast('Min investment is $' + pool.minInvestment.toLocaleString(), 'error'); return; }
+  if (pool.status === 'FUNDED') { showToast('This pool is fully funded', 'error'); return; }
+  APP.investAmount = String(amt);
+  APP.checkoutPoolId = poolId;
+  APP.checkoutAmount = amt;
+  render();
+}
+
+function confirmInvestment() {
+  if (APP.checkoutPaymentMethod === 'crypto' && !APP.walletConnected) {
+    APP.showPaymentModal = true; render(); return;
+  }
+  const poolId = APP.checkoutPoolId;
+  APP.checkoutPoolId = null;
+  APP.checkoutAmount = 0;
+  investInPool(poolId);
+}
+
+function buyNow(listingId) {
+  APP.buyNowListingId = listingId;
+  render();
+}
+
+function confirmBuyNow() {
+  if (APP.checkoutPaymentMethod === 'crypto' && !APP.walletConnected) {
+    APP.showPaymentModal = true; render(); return;
+  }
+  const listing = MOCK_LISTINGS.find(l => l.id === APP.buyNowListingId);
+  const fee = parseFloat((listing.price * PLATFORM_FEE_RATE).toFixed(2));
+  APP.platformFees.push({ id:'fee_'+Date.now(), poolId:null, poolName:listing.address, grossAUD:listing.price, feeAUD:fee, netAUD:listing.price-fee, feeCrypto:cryptoEquiv(fee, APP.selectedCrypto||'BTC'), crypto:APP.selectedCrypto||'BTC', date:new Date().toLocaleDateString('en-AU') });
+  APP.ownerWalletBalance.AUD = parseFloat((APP.ownerWalletBalance.AUD + fee).toFixed(2));
+  const pm = APP.checkoutPaymentMethod;
+  const labels = { visa:'Visa card', mastercard:'Mastercard', paypal:'PayPal', crypto:'crypto wallet', bank:'bank transfer' };
+  APP.buyNowListingId = null;
+  showToast(`Purchase initiated via ${labels[pm]||'payment'}. Our settlement team will be in touch.`);
+}
+
+function submitNewListing() {
+  const f = APP.listingFormData;
+  if (!f.address || !f.suburb || !f.price || !f.postcode) { showToast('Please fill in all required fields', 'error'); return; }
+  const colors = ['from-indigo-400 to-blue-600','from-amber-400 to-orange-500','from-emerald-400 to-teal-600','from-rose-400 to-pink-600','from-sky-400 to-cyan-500','from-violet-400 to-purple-600'];
+  const emojis = { House:'🏡', Apartment:'🏢', Townhouse:'🏘️', Villa:'🌴', Land:'🌿', Commercial:'🏬' };
+  const newId = 'l_' + Date.now();
+  MOCK_LISTINGS.push({
+    id: newId, poolId: null, status: 'PENDING',
+    submittedBy: APP.currentUser?.name || 'User',
+    adminNotes: [],
+    saleType: f.saleType,
+    address: f.address, suburb: f.suburb, state: f.state, postcode: f.postcode,
+    price: parseFloat(f.price), type: f.type,
+    beds: parseInt(f.beds)||1, baths: parseInt(f.baths)||1, parking: parseInt(f.parking)||0,
+    landSize: f.landSize ? parseInt(f.landSize) : null,
+    yearBuilt: null, rentalYield: null, weeklyRent: null,
+    description: f.description || '',
+    features: [],
+    color: colors[Math.floor(Math.random()*colors.length)],
+    emoji: emojis[f.type] || '🏠',
+    listingRef: 'REF-' + newId.slice(-6).toUpperCase(),
+  });
+  APP.showListingForm = false;
+  APP.listingFormData = { address:'', suburb:'', state:'NSW', postcode:'', price:'', type:'House', beds:3, baths:2, parking:1, landSize:'', description:'', saleType:'invest' };
+  showToast('Listing submitted for review. Our team will approve it shortly.');
+}
+</script>
+
+<!-- ROOT -->
+<div id="app"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// VIEW BUILDER
+// ═══════════════════════════════════════════════════════════════════════════
+
+function buildView() {
+  const wrap = document.createElement('div');
+  wrap.className = 'fade-in';
+  if (APP.view === 'landing') { wrap.appendChild(buildLandingPage()); return wrap; }
+  if (APP.view === 'browse')  { wrap.appendChild(buildBrowseLayout()); return wrap; }
+  if (APP.view === 'login') { wrap.appendChild(buildLogin()); return wrap; }
+  // Authenticated layout
+  const layout = el('div', 'flex min-h-screen');
+  layout.appendChild(buildSidebar());
+  const main = el('div', 'flex-1 overflow-auto');
+  if (APP.view === 'dashboard')    main.appendChild(buildDashboard());
+  else if (APP.view === 'deals')   main.appendChild(buildDeals());
+  else if (APP.view === 'workspace') main.appendChild(buildWorkspace());
+  else if (APP.view === 'conveyancer') main.appendChild(buildConveyancer());
+  else if (APP.view === 'documents') main.appendChild(buildDocuments());
+  else if (APP.view === 'listings') main.appendChild(buildListings());
+  else if (APP.view === 'invest')   main.appendChild(buildInvest());
+  else if (APP.view === 'portfolio') main.appendChild(buildPortfolio());
+  else if (APP.view === 'admin')     main.appendChild(buildAdmin());
+  layout.appendChild(main);
+  wrap.appendChild(layout);
+  // Toast
+  if (APP.toast) wrap.appendChild(buildToast(APP.toast));
+  if (APP.showPaymentModal) wrap.appendChild(buildPaymentModal());
+  if (APP.checkoutPoolId) wrap.appendChild(buildCheckoutModal());
+  if (APP.buyNowListingId) wrap.appendChild(buildBuyNowModal());
+  if (APP.showListingForm) wrap.appendChild(buildListingFormModal());
+  return wrap;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+function el(tag, cls='', html='') {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (html) e.innerHTML = html;
+  return e;
+}
+function btn(label, cls, onclick) {
+  const b = el('button', cls);
+  b.innerHTML = label;
+  b.onclick = onclick;
+  return b;
+}
+function statusBadge(status) {
+  const map = {
+    INIT:      ['bg-gray-100 text-gray-700', 'Initiated'],
+    ACTIVE:    ['bg-blue-100 text-blue-700', 'In Progress'],
+    READY:     ['bg-amber-100 text-amber-700', 'Ready to Settle'],
+    SETTLED:   ['bg-green-100 text-green-700', 'Settled'],
+    CANCELLED: ['bg-red-100 text-red-700', 'Cancelled'],
+  };
+  const [cls, label] = map[status] || ['bg-gray-100 text-gray-700', status];
+  return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${cls}">${label}</span>`;
+}
+function condBadge(status) {
+  const map = { MET:'text-green-600', PENDING:'text-gray-400', WAIVED:'text-amber-600', FAILED:'text-red-600' };
+  const icons = { MET:'✓', PENDING:'○', WAIVED:'~', FAILED:'✗' };
+  return `<span class="font-bold text-sm ${map[status]}">${icons[status]}</span>`;
+}
+function fmtPrice(p) {
+  if (!p) return '$0';
+  if (p >= 1000000) {
+    const m = p / 1000000;
+    return '$' + (m === Math.floor(m) ? m.toFixed(0) : parseFloat(m.toFixed(2))) + 'm';
+  }
+  if (p >= 1000) {
+    const k = p / 1000;
+    return '$' + (k === Math.floor(k) ? k.toFixed(0) : parseFloat(k.toFixed(1))) + 'k';
+  }
+  return '$' + p;
+}
+function condMetCount(deal) {
+  return deal.conditions.filter(c => c.status==='MET'||c.status==='WAIVED').length;
+}
+function isConveyancer() {
+  return APP.currentUser?.role?.includes('CONVEYANCER') || APP.currentUser?.role==='ADMIN';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PUBLIC BROWSE LAYOUT (no login required)
+// ═══════════════════════════════════════════════════════════════════════════
+function buildBrowseLayout() {
+  const navItems = [
+    { tab:'listings', label:'Listings', icon:'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z M9 22V12h6v10' },
+    { tab:'invest',   label:'Invest',   icon:'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6' },
+  ];
+
+  const wrap = el('div', 'flex min-h-screen');
+
+  // Sidebar
+  const sidebar = el('aside', 'w-60 min-h-screen bg-white border-r border-gray-200 flex flex-col');
+  sidebar.innerHTML = `
+    <div class="p-5 border-b border-gray-100">
+      <button onclick="APP.view='browse';APP.landingTab='listings';render()" class="flex items-center gap-3 w-full text-left hover:opacity-80 transition-opacity">
+        <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+          </svg>
+        </div>
+        <div><p class="font-semibold text-gray-900 text-sm">Settlement OS</p></div>
+      </button>
+    </div>
+    <nav class="flex-1 p-3 space-y-0.5" id="browseNav"></nav>
+    <div class="p-4 border-t border-gray-100 space-y-2">
+      <button onclick="APP.view='login';render()"
+        class="w-full py-2.5 px-4 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
+        Sign In
+      </button>
+      <button onclick="APP.view='landing';render()"
+        class="w-full py-2 px-4 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+        ← Back to home
+      </button>
+    </div>`;
+
+  const nav = sidebar.querySelector('#browseNav');
+  navItems.forEach(item => {
+    const active = APP.landingTab === item.tab;
+    const b = btn(
+      `<svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${item.icon}"/></svg>${item.label}`,
+      `flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors ${active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`,
+      () => { APP.landingTab = item.tab; render(); }
+    );
+    nav.appendChild(b);
+  });
+
+  wrap.appendChild(sidebar);
+
+  const main = el('div', 'flex-1 overflow-auto');
+
+  // Top banner
+  const banner = el('div', 'bg-indigo-600 px-6 py-3 flex items-center justify-between gap-4');
+  banner.innerHTML = `
+    <div class="flex items-center gap-2 min-w-0">
+      <svg class="w-4 h-4 text-indigo-200 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <p class="text-sm text-indigo-100 truncate">Sign in to access your Dashboard, Deals, Portfolio and more</p>
+    </div>
+    <div class="flex items-center gap-2 flex-shrink-0">
+      <button onclick="APP.view='login';render()"
+        class="px-4 py-1.5 text-sm font-medium text-indigo-100 border border-indigo-400 rounded-lg hover:bg-indigo-500 transition-colors">
+        Log In
+      </button>
+      <button onclick="APP.view='login';render()"
+        class="px-4 py-1.5 text-sm font-semibold text-indigo-700 bg-white rounded-lg hover:bg-indigo-50 transition-colors">
+        Sign Up
+      </button>
+    </div>`;
+  main.appendChild(banner);
+
+  if (APP.landingTab === 'invest') main.appendChild(buildInvest());
+  else main.appendChild(buildListings());
+  wrap.appendChild(main);
+
+  if (APP.toast) wrap.appendChild(buildToast(APP.toast));
+  if (APP.showPaymentModal) wrap.appendChild(buildPaymentModal());
+  if (APP.checkoutPoolId) wrap.appendChild(buildCheckoutModal());
+  if (APP.buyNowListingId) wrap.appendChild(buildBuyNowModal());
+  if (APP.showListingForm) wrap.appendChild(buildListingFormModal());
+  return wrap;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LANDING PAGE
+// ═══════════════════════════════════════════════════════════════════════════
+function buildLandingPage() {
+  const page = el('div', '');
+  page.style.cssText = 'background:#f8fafc; min-height:100vh; color:#111827; font-family:inherit;';
+
+  page.innerHTML = `
+  <!-- ── Navbar ─────────────────────────────────────────────────────────── -->
+  <nav style="position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid #e5e7eb;">
+    <div style="max-width:1200px;margin:0 auto;padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:64px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:34px;height:34px;background:#4f46e5;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+          </svg>
+        </div>
+        <span style="font-size:1.05rem;font-weight:700;color:#111827;">Settlement OS</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:1rem;">
+        <button onclick="APP.view='browse';APP.landingTab='listings';render()" style="background:none;border:none;color:#6b7280;font-size:0.9rem;cursor:pointer;padding:0.4rem 0.75rem;border-radius:8px;transition:color 0.15s;" onmouseover="this.style.color='#111827'" onmouseout="this.style.color='#6b7280'">Browse</button>
+        <button onclick="APP.view='login';render()" style="background:none;border:1px solid #d1d5db;color:#374151;font-size:0.875rem;font-weight:600;cursor:pointer;padding:0.5rem 1.25rem;border-radius:8px;transition:all 0.15s;" onmouseover="this.style.borderColor='#4f46e5';this.style.color='#4f46e5'" onmouseout="this.style.borderColor='#d1d5db';this.style.color='#374151'">Login</button>
+        <button onclick="APP.view='login';render()" style="background:#4f46e5;border:none;color:#fff;font-size:0.875rem;font-weight:700;cursor:pointer;padding:0.5rem 1.25rem;border-radius:8px;transition:background 0.15s;" onmouseover="this.style.background='#4338ca'" onmouseout="this.style.background='#4f46e5'">Register</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── Hero ───────────────────────────────────────────────────────────── -->
+  <section style="background:linear-gradient(135deg,#eef2ff 0%,#fff 60%,#f0fdf4 100%);padding:6rem 2rem 5rem;text-align:center;">
+    <div style="max-width:1200px;margin:0 auto;">
+      <div style="display:inline-flex;align-items:center;gap:8px;padding:0.45rem 1.1rem;border-radius:999px;border:1px solid #c7d2fe;background:#e0e7ff;color:#4338ca;font-size:0.82rem;font-weight:600;margin-bottom:2rem;">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        Global Property Investment Platform
+      </div>
+      <h1 style="font-size:clamp(2.8rem,6vw,4.5rem);font-weight:900;line-height:1.1;margin:0 0 1.25rem;color:#111827;">
+        Invest in Property<br>
+        <span style="color:#4f46e5;">Securely with Crypto</span>
+      </h1>
+      <p style="color:#6b7280;font-size:1.1rem;max-width:560px;margin:0 auto 2.5rem;line-height:1.7;">
+        Connect with premium properties across Australia and Bali. Buy fractional ownership in high-yield real estate with BTC, ETH, and Solana payments.
+      </p>
+      <div style="display:flex;align-items:center;justify-content:center;gap:1rem;flex-wrap:wrap;">
+        <button onclick="APP.view='browse';APP.landingTab='listings';render()" style="background:#4f46e5;border:none;color:#fff;font-size:1rem;font-weight:700;cursor:pointer;padding:0.9rem 2.2rem;border-radius:12px;transition:background 0.15s;" onmouseover="this.style.background='#4338ca'" onmouseout="this.style.background='#4f46e5'">Browse Listings</button>
+        <button onclick="APP.view='browse';APP.landingTab='invest';render()" style="background:#fff;border:1px solid #d1d5db;color:#374151;font-size:1rem;font-weight:700;cursor:pointer;padding:0.9rem 2.2rem;border-radius:12px;transition:all 0.15s;" onmouseover="this.style.borderColor='#4f46e5';this.style.color='#4f46e5'" onmouseout="this.style.borderColor='#d1d5db';this.style.color='#374151'">Start Investing</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Stats bar ──────────────────────────────────────────────────────── -->
+  <section style="background:#fff;border-top:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
+    <div style="max-width:1200px;margin:0 auto;padding:2rem;display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;text-align:center;">
+      <div>
+        <p style="font-size:1.8rem;font-weight:800;color:#4f46e5;margin:0;">$10.6M+</p>
+        <p style="font-size:0.8rem;color:#9ca3af;margin:0.25rem 0 0;">Properties listed</p>
+      </div>
+      <div>
+        <p style="font-size:1.8rem;font-weight:800;color:#4f46e5;margin:0;">14.2%</p>
+        <p style="font-size:0.8rem;color:#9ca3af;margin:0.25rem 0 0;">Max annual yield</p>
+      </div>
+      <div>
+        <p style="font-size:1.8rem;font-weight:800;color:#4f46e5;margin:0;">Multiple</p>
+        <p style="font-size:0.8rem;color:#9ca3af;margin:0.25rem 0 0;">Regions</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Feature cards ──────────────────────────────────────────────────── -->
+  <section style="max-width:1200px;margin:0 auto;padding:5rem 2rem;">
+    <h2 style="text-align:center;font-size:1.9rem;font-weight:800;color:#111827;margin:0 0 0.75rem;">How it works</h2>
+    <p style="text-align:center;color:#9ca3af;margin:0 0 3rem;font-size:0.95rem;">Three steps to fractional property ownership</p>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;">
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:2rem;">
+        <div style="width:44px;height:44px;background:#e0e7ff;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:1.25rem;">
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#4f46e5" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z M9 22V12h6v10"/></svg>
+        </div>
+        <h3 style="font-size:1.05rem;font-weight:700;color:#111827;margin:0 0 0.6rem;">Browse Properties</h3>
+        <p style="font-size:0.875rem;color:#6b7280;line-height:1.6;margin:0;">Explore curated high-yield properties across Australia and Bali, from beachfront apartments to cliff-top villas.</p>
+      </div>
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:2rem;">
+        <div style="width:44px;height:44px;background:#e0e7ff;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:1.25rem;">
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#4f46e5" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+        </div>
+        <h3 style="font-size:1.05rem;font-weight:700;color:#111827;margin:0 0 0.6rem;">Invest with Crypto</h3>
+        <p style="font-size:0.875rem;color:#6b7280;line-height:1.6;margin:0;">Pool funds with other investors from as little as $2,500 AUD. Receive rental returns paid directly in BTC, ETH, or SOL.</p>
+      </div>
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:2rem;">
+        <div style="width:44px;height:44px;background:#e0e7ff;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:1.25rem;">
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#4f46e5" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        </div>
+        <h3 style="font-size:1.05rem;font-weight:700;color:#111827;margin:0 0 0.6rem;">Secure Settlement</h3>
+        <p style="font-size:0.875rem;color:#6b7280;line-height:1.6;margin:0;">Every transaction is managed through our end-to-end settlement platform with full audit trail and PEXA integration.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CTA footer ─────────────────────────────────────────────────────── -->
+  <section style="background:#4f46e5;text-align:center;padding:4rem 2rem;">
+    <h2 style="font-size:1.7rem;font-weight:800;color:#fff;margin:0 0 0.75rem;">Ready to invest?</h2>
+    <p style="color:#c7d2fe;margin:0 0 2rem;font-size:0.95rem;">Join investors already earning crypto returns from real property.</p>
+    <button onclick="APP.view='login';render()" style="background:#fff;border:none;color:#4f46e5;font-size:1rem;font-weight:700;cursor:pointer;padding:0.9rem 2.5rem;border-radius:12px;transition:background 0.15s;" onmouseover="this.style.background='#e0e7ff'" onmouseout="this.style.background='#fff'">Get Started</button>
+    <p style="margin:1.5rem 0 0;font-size:0.8rem;color:#a5b4fc;">Demo mode — no real data or transactions</p>
+  </section>`;
+
+  return page;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LOGIN
+// ═══════════════════════════════════════════════════════════════════════════
+function buildLogin() {
+  const page = el('div', 'min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-slate-100');
+  page.innerHTML = `
+    <div class="w-full max-w-sm">
+      <div class="bg-white rounded-2xl border border-gray-200 shadow-lg p-8">
+        <div class="text-center mb-8">
+          <div class="inline-flex items-center justify-center w-14 h-14 bg-indigo-600 rounded-2xl mb-4 shadow-lg">
+            <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+            </svg>
+          </div>
+          <h1 class="text-2xl font-bold text-gray-900">Settlement OS</h1>
+          <p class="text-sm text-gray-400 mt-1">Property Settlement Platform</p>
+        </div>
+        <p class="text-sm font-medium text-gray-700 mb-3 text-center">Sign in as:</p>
+        <div class="space-y-2" id="loginBtns"></div>
+        <p class="text-center text-xs text-gray-400 mt-6">Demo mode — no real data</p>
+      </div>
+    </div>`;
+
+  const roles = [
+    ['BUYER_CONVEYANCER', "Buyer's Conveyancer", 'bg-indigo-600 hover:bg-indigo-700 text-white'],
+    ['SELLER_CONVEYANCER', "Seller's Conveyancer", 'bg-amber-500 hover:bg-amber-600 text-white'],
+    ['BUYER', 'Buyer', 'bg-blue-500 hover:bg-blue-600 text-white'],
+    ['SELLER', 'Seller', 'bg-rose-500 hover:bg-rose-600 text-white'],
+    ['AGENT', 'Real Estate Agent', 'bg-green-500 hover:bg-green-600 text-white'],
+    ['ADMIN', 'Admin', 'bg-gray-800 hover:bg-gray-900 text-white'],
+  ];
+  const container = page.querySelector('#loginBtns');
+  roles.forEach(([role, label, cls]) => {
+    const b = btn(label, `w-full py-2.5 px-4 rounded-lg text-sm font-medium transition-colors ${cls}`, () => login(role));
+    container.appendChild(b);
+  });
+  return page;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SIDEBAR
+// ═══════════════════════════════════════════════════════════════════════════
+function buildSidebar() {
+  const u = APP.currentUser;
+  const roleLabels = {
+    BUYER_CONVEYANCER:"Buyer's Conveyancer", SELLER_CONVEYANCER:"Seller's Conveyancer",
+    BUYER:'Buyer', SELLER:'Seller', AGENT:'Real Estate Agent', ADMIN:'Administrator'
+  };
+  const nav = [
+    { view:'dashboard', label:'Dashboard', icon:'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
+    { view:'listings', label:'Listings', icon:'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z M9 22V12h6v10' },
+    { view:'invest', label:'Invest', icon:'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6' },
+    { sep: true },
+    { view:'deals', label:'Deals', icon:'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+    { view:'conveyancer', label:'Pipeline', roles:['BUYER_CONVEYANCER','SELLER_CONVEYANCER','ADMIN'], icon:'M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2' },
+    { view:'documents', label:'Documents', icon:'M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z' },
+    { sep: true },
+    { view:'portfolio', label:'My Portfolio', icon:'M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z' },
+    { sep: true },
+    { view:'admin', label:'Admin Panel', roles:['ADMIN'], icon:'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
+  ];
+
+  const sidebar = el('aside', 'w-60 min-h-screen bg-white border-r border-gray-200 flex flex-col');
+  sidebar.innerHTML = `
+    <div class="p-5 border-b border-gray-100">
+      <button onclick="APP.view='listings';render()" class="flex items-center gap-3 w-full text-left hover:opacity-80 transition-opacity">
+        <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+          </svg>
+        </div>
+        <div><p class="font-semibold text-gray-900 text-sm">Settlement OS</p></div>
+      </button>
+    </div>
+    <nav class="flex-1 p-3 space-y-0.5" id="navItems"></nav>
+    <div class="p-4 border-t border-gray-100">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
+          <span class="text-xs font-bold text-indigo-600">${u?.name?.split(' ').map(w=>w[0]).join('')}</span>
+        </div>
+        <div class="min-w-0">
+          <p class="text-sm font-medium text-gray-900 truncate">${u?.name}</p>
+          <p class="text-xs text-gray-400 truncate">${roleLabels[u?.role]||u?.role}</p>
+        </div>
+      </div>
+      <button onclick="APP.currentUser=null; APP.view='login'; render()"
+        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-500 hover:bg-gray-50 rounded-lg transition-colors">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+        </svg>Sign out
+      </button>
+    </div>`;
+
+  const navContainer = sidebar.querySelector('#navItems');
+  nav.forEach(item => {
+    if (item.sep) {
+      const sep = el('div', 'border-t border-gray-100 my-2 mx-1');
+      navContainer.appendChild(sep);
+      return;
+    }
+    if (item.roles && !item.roles.includes(u?.role)) return;
+    const active = APP.view === item.view || (APP.view === 'workspace' && item.view === 'deals');
+    const navBtn = btn(
+      `<svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${item.icon}"/></svg>${item.label}`,
+      `flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors ${active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`,
+      () => setView(item.view)
+    );
+    navContainer.appendChild(navBtn);
+  });
+  return sidebar;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════════════════════
+function buildToast({ msg, type }) {
+  const t = el('div',
+    `fixed bottom-6 right-6 z-50 fade-in px-5 py-3 rounded-xl shadow-lg text-sm font-medium text-white flex items-center gap-3 ${type==='success'?'bg-gray-900':'bg-red-600'}`);
+  t.innerHTML = `<span>${msg}</span>`;
+  return t;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════════════════════════
+function buildDashboard() {
+  const deals = APP.deals;
+  const active = deals.filter(d=>d.status==='ACTIVE').length;
+  const ready  = deals.filter(d=>d.status==='READY').length;
+  const settled= deals.filter(d=>d.status==='SETTLED').length;
+  const urgent = deals.filter(d=>d.daysToSettle!=null&&d.daysToSettle<=7&&d.status!=='SETTLED').length;
+
+  const h = new Date().getHours();
+  const greet = h<12?'morning':h<18?'afternoon':'evening';
+
+  const page = el('div', 'p-8');
+  page.innerHTML = `
+    <div class="flex items-center justify-between mb-8">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Good ${greet}, ${APP.currentUser?.name?.split(' ')[0]}</h1>
+        <p class="text-sm text-gray-400 mt-0.5">${APP.currentUser?.role?.replace(/_/g,' ')} · ${new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'})}</p>
+      </div>
+      <button onclick="setView('deals')" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        New Deal
+      </button>
+    </div>
+
+    <div class="grid grid-cols-4 gap-4 mb-8">
+      <div class="bg-blue-50 border border-blue-100 rounded-xl p-5">
+        <p class="text-3xl font-bold text-blue-700">${active}</p>
+        <p class="text-sm text-blue-600 mt-1 opacity-80">Active Deals</p>
+      </div>
+      <div class="bg-amber-50 border border-amber-100 rounded-xl p-5">
+        <p class="text-3xl font-bold text-amber-700">${ready}</p>
+        <p class="text-sm text-amber-600 mt-1 opacity-80">Ready to Settle</p>
+      </div>
+      <div class="bg-green-50 border border-green-100 rounded-xl p-5">
+        <p class="text-3xl font-bold text-green-700">${settled}</p>
+        <p class="text-sm text-green-600 mt-1 opacity-80">Settled (All Time)</p>
+      </div>
+      <div class="bg-red-50 border border-red-100 rounded-xl p-5">
+        <p class="text-3xl font-bold text-red-700">${urgent}</p>
+        <p class="text-sm text-red-600 mt-1 opacity-80">Due This Week</p>
+      </div>
+    </div>
+
+    <div class="mb-8">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="w-2 h-2 bg-amber-500 rounded-full pulse-dot"></span>
+        <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Requires Attention</h2>
+      </div>
+      <div id="urgentDeals" class="grid grid-cols-2 gap-3"></div>
+    </div>
+
+    <div>
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Recent Deals</h2>
+        <button onclick="setView('deals')" class="text-sm text-indigo-600 hover:text-indigo-700">View all →</button>
+      </div>
+      <div id="recentDeals" class="grid grid-cols-2 gap-3"></div>
+    </div>`;
+
+  const urgentDeals = page.querySelector('#urgentDeals');
+  const urgent2 = deals.filter(d=>d.status==='READY'||(d.daysToSettle!=null&&d.daysToSettle<=14&&d.status==='ACTIVE'));
+  if (urgent2.length===0) {
+    urgentDeals.innerHTML = '<p class="col-span-2 text-sm text-gray-400">No deals requiring immediate attention.</p>';
+  }
+  urgent2.forEach(d => urgentDeals.appendChild(buildDealCard(d)));
+
+  const recentDeals = page.querySelector('#recentDeals');
+  deals.filter(d=>d.status!=='SETTLED').slice(0,4).forEach(d => recentDeals.appendChild(buildDealCard(d)));
+  return page;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DEAL CARD
+// ═══════════════════════════════════════════════════════════════════════════
+function buildDealCard(deal) {
+  const met = condMetCount(deal);
+  const total = deal.conditions.length;
+  const pct = total > 0 ? Math.round(met/total*100) : 0;
+  const urgent = deal.daysToSettle!=null && deal.daysToSettle<=7;
+
+  const card = el('div', 'bg-white rounded-xl border border-gray-200 shadow-sm p-5 cursor-pointer hover:shadow-md transition-shadow group');
+  card.onclick = () => setView('workspace', deal.id);
+  card.innerHTML = `
+    <div class="flex items-start justify-between mb-3">
+      <div class="min-w-0 flex-1">
+        <p class="font-semibold text-gray-900 text-sm truncate group-hover:text-indigo-600 transition-colors">${deal.address}</p>
+        <p class="text-xs text-gray-400 mt-0.5">${deal.referenceNo}</p>
+      </div>
+      <div class="ml-3 flex-shrink-0">${statusBadge(deal.status)}</div>
+    </div>
+    <div class="flex items-center justify-between text-sm text-gray-500 mb-3">
+      <span class="font-medium">${fmtPrice(deal.price)}</span>
+      ${deal.daysToSettle!=null ? `<span class="${urgent?'text-red-600 font-medium flex items-center gap-1':''}">
+        ${urgent?'<span class="w-1.5 h-1.5 bg-red-500 rounded-full"></span>':''}
+        ${deal.status==='SETTLED'?'Settled':deal.daysToSettle+'d to settle'}
+      </span>` : ''}
+    </div>
+    ${total > 0 ? `
+    <div>
+      <div class="flex items-center justify-between text-xs text-gray-400 mb-1">
+        <span>Conditions</span><span>${met}/${total}</span>
+      </div>
+      <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+        <div class="h-full bg-green-500 rounded-full progress-bar" style="width:${pct}%"></div>
+      </div>
+    </div>` : ''}
+    ${deal.parties.length > 0 ? `
+    <div class="flex -space-x-1 mt-3">
+      ${deal.parties.slice(0,4).map(p=>`
+        <div class="w-6 h-6 rounded-full ${p.color} border-2 border-white flex items-center justify-center" title="${p.name} (${p.role})">
+          <span class="text-[9px] font-bold">${p.initials}</span>
+        </div>`).join('')}
+      ${deal.parties.length>4?`<div class="w-6 h-6 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center"><span class="text-[9px] text-gray-500">+${deal.parties.length-4}</span></div>`:''}
+    </div>` : ''}`;
+  return card;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DEALS LIST
+// ═══════════════════════════════════════════════════════════════════════════
+function buildDeals() {
+  const page = el('div', 'p-8');
+  page.innerHTML = `
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-2xl font-bold text-gray-900">Deals</h1>
+      <button onclick="showToast('New deal form — connect backend to save ✓')"
+        class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        New Deal
+      </button>
+    </div>
+    <div class="grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-3" id="dealsGrid"></div>`;
+  const grid = page.querySelector('#dealsGrid');
+  APP.deals.forEach(d => grid.appendChild(buildDealCard(d)));
+  return page;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DEAL WORKSPACE
+// ═══════════════════════════════════════════════════════════════════════════
+function buildWorkspace() {
+  const deal = APP.currentDeal;
+  if (!deal) { setView('deals'); return el('div'); }
+
+  const page = el('div', 'p-8');
+  const condMet = condMetCount(deal);
+  const condTotal = deal.conditions.length;
+
+  // Determine PEXA ref
+  const pexaRef = deal.pexaRef || (deal.status==='SETTLED'?'AU-2024-78901':null);
+
+  page.innerHTML = `
+    <!-- Breadcrumb & header -->
+    <div class="flex items-start justify-between mb-6">
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <button onclick="setView('deals')" class="text-gray-400 hover:text-gray-600 text-sm">← Deals</button>
+          <span class="text-gray-300">/</span>
+          <span class="text-sm text-gray-400">${deal.referenceNo}</span>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">${deal.address.split(',')[0]}</h1>
+        <p class="text-sm text-gray-400 mt-0.5">
+          ${deal.address.split(',').slice(1).join(',').trim()}
+          ${deal.titleRef?`<span class="ml-2 text-gray-300">· CT ${deal.titleRef}</span>`:''}
+        </p>
+      </div>
+      <div class="flex items-center gap-3">
+        ${deal.daysToSettle!=null&&deal.status!=='SETTLED'?`
+          <div class="text-sm px-3 py-1.5 rounded-lg ${deal.daysToSettle<=7?'bg-red-100 text-red-700':'bg-gray-100 text-gray-600'}">
+            ${deal.daysToSettle>=0?deal.daysToSettle+'d to settle':'Overdue'}
+          </div>`:deal.status==='SETTLED'?`<div class="text-sm px-3 py-1.5 rounded-lg bg-green-100 text-green-700">Settled ✓</div>`:''}
+        ${statusBadge(deal.status)}
+      </div>
+    </div>
+
+    <!-- Key stats -->
+    <div class="grid grid-cols-3 gap-4 mb-6">
+      <div class="bg-white rounded-xl border border-gray-200 p-4">
+        <p class="text-xs text-gray-400 mb-1">Purchase Price</p>
+        <p class="text-xl font-bold text-gray-900">${fmtPrice(deal.price)}</p>
+      </div>
+      <div class="bg-white rounded-xl border border-gray-200 p-4">
+        <p class="text-xs text-gray-400 mb-1">Deposit</p>
+        <p class="text-xl font-bold text-gray-900">${fmtPrice(deal.deposit)}</p>
+        ${deal.depositPaid?'<span class="text-xs text-green-600 font-medium">✓ Paid</span>':'<span class="text-xs text-amber-500">Pending</span>'}
+      </div>
+      <div class="bg-white rounded-xl border border-gray-200 p-4">
+        <p class="text-xs text-gray-400 mb-1">Settlement Date</p>
+        <p class="text-xl font-bold text-gray-900">${deal.settlementDate||'—'}</p>
+      </div>
+    </div>
+
+    <!-- Parties -->
+    ${deal.parties.length>0?`
+    <div class="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+      <h3 class="font-semibold text-gray-900 mb-3">Parties</h3>
+      <div class="flex flex-wrap gap-4">
+        ${deal.parties.map(p=>`
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-full ${p.color} flex items-center justify-center flex-shrink-0">
+              <span class="text-xs font-bold">${p.initials}</span>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-gray-900">${p.name}</p>
+              <p class="text-xs text-gray-400">${p.role}</p>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`:''}
+
+    <!-- Main Grid -->
+    <div class="grid grid-cols-3 gap-6">
+      <!-- Left: Timeline + Tabs -->
+      <div class="col-span-2 space-y-5">
+        <!-- Timeline -->
+        ${deal.milestones.length>0?buildTimelineHTML(deal):''}
+        <!-- Tab bar -->
+        <div class="bg-white rounded-xl border border-gray-200">
+          <div class="flex border-b border-gray-100">
+            ${['conditions','documents','audit','messages'].map(t=>`
+              <button onclick="APP.workspaceTab='${t}';APP.currentDeal=APP.deals.find(d=>d.id==='${deal.id}');render()"
+                class="px-5 py-3 text-sm font-medium transition-colors ${APP.workspaceTab===t?'text-indigo-600 border-b-2 border-indigo-500 -mb-px':'text-gray-500 hover:text-gray-700'}">
+                ${t.charAt(0).toUpperCase()+t.slice(1)}
+                ${t==='conditions'&&condTotal>0?`<span class="ml-1.5 px-1.5 py-0.5 text-xs rounded-full ${condMet===condTotal?'bg-green-100 text-green-700':'bg-gray-100 text-gray-500'}">${condMet}/${condTotal}</span>`:''}
+                ${t==='messages'?`<span class="ml-1.5 px-1.5 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500">${deal.parties.filter(p=>p.name!==APP.currentUser?.name).length}</span>`:''}
+              </button>`).join('')}
+          </div>
+          <div class="p-5" id="tabContent"></div>
+        </div>
+      </div>
+      <!-- Right: Settlement + Activity -->
+      <div class="space-y-5" id="rightCol"></div>
+    </div>`;
+
+  // Tab content
+  const tabContent = page.querySelector('#tabContent');
+  if (APP.workspaceTab === 'conditions') tabContent.appendChild(buildConditionsTab(deal));
+  else if (APP.workspaceTab === 'documents') tabContent.innerHTML = buildDocumentsTab(deal);
+  else if (APP.workspaceTab === 'audit') tabContent.innerHTML = buildAuditTab(deal);
+  else if (APP.workspaceTab === 'messages') tabContent.appendChild(buildMessagesTab(deal));
+
+  // Right column
+  const rightCol = page.querySelector('#rightCol');
+  rightCol.appendChild(buildSettlementPanel(deal));
+  rightCol.appendChild(buildActivityFeed(deal));
+
+  return page;
+}
+
+function buildTimelineHTML(deal) {
+  const done = deal.milestones.filter(m=>m.status==='COMPLETE').length;
+  const pct = Math.round(done/deal.milestones.length*100);
+  const cfg = { COMPLETE:{dot:'bg-green-500 text-white ring-green-200',icon:'✓'}, IN_PROGRESS:{dot:'bg-indigo-500 text-white ring-indigo-200',icon:'●'}, PENDING:{dot:'bg-gray-200 text-gray-400 ring-gray-100',icon:'○'}, BLOCKED:{dot:'bg-red-500 text-white ring-red-200',icon:'!'} };
+  return `
+  <div class="bg-white rounded-xl border border-gray-200 p-5">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-semibold text-gray-900">Timeline</h3>
+      <span class="text-sm text-gray-400">${done}/${deal.milestones.length} complete</span>
+    </div>
+    <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden mb-5">
+      <div class="h-full bg-green-500 rounded-full progress-bar" style="width:${pct}%"></div>
+    </div>
+    <div class="relative">
+      <div class="absolute left-[15px] top-4 bottom-4 w-0.5 bg-gray-100"></div>
+      <div class="space-y-3">
+        ${deal.milestones.map(m=>{
+          const c = cfg[m.status];
+          return `<div class="flex items-start gap-3">
+            <div class="relative z-10 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ring-4 ${c.dot} ${cfg[m.status]?.ring||'ring-gray-100'}">
+              ${c.icon}
+            </div>
+            <div class="flex-1 pt-1">
+              <div class="flex items-center justify-between">
+                <p class="text-sm font-medium ${m.status==='COMPLETE'?'text-gray-400 line-through':m.status==='IN_PROGRESS'?'text-indigo-700':m.status==='BLOCKED'?'text-red-700':'text-gray-700'}">${m.name}</p>
+                ${m.date?`<span class="text-xs text-gray-400">${m.date}</span>`:''}
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+function buildConditionsTab(deal) {
+  const wrap = el('div', 'space-y-2');
+  if (deal.conditions.length === 0) {
+    wrap.innerHTML = '<p class="text-sm text-gray-400 text-center py-6">No conditions configured.</p>';
+    return wrap;
+  }
+  const met = condMetCount(deal);
+  const allMet = met === deal.conditions.length;
+
+  // Gate banner
+  const banner = el('div', `flex items-center gap-2 p-3 rounded-lg mb-3 text-sm font-medium border ${allMet?'bg-green-50 border-green-200 text-green-700':'bg-amber-50 border-amber-200 text-amber-700'}`);
+  banner.innerHTML = allMet
+    ? `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg> All conditions met — deal is ready to settle`
+    : `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg> ${deal.conditions.length-met} condition${deal.conditions.length-met!==1?'s':''} pending`;
+  wrap.appendChild(banner);
+
+  const statusBg = { MET:'bg-white border-gray-200', PENDING:'bg-white border-gray-200', WAIVED:'bg-amber-50 border-amber-200', FAILED:'bg-red-50 border-red-200' };
+
+  deal.conditions.forEach(cond => {
+    const card = el('div', `border rounded-lg p-4 ${statusBg[cond.status]||'bg-white border-gray-200'}`);
+    card.innerHTML = `
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex items-start gap-3 flex-1 min-w-0">
+          <span class="font-bold text-sm mt-0.5 ${cond.status==='MET'?'text-green-600':cond.status==='WAIVED'?'text-amber-600':cond.status==='FAILED'?'text-red-600':'text-gray-400'}">
+            ${cond.status==='MET'?'✓':cond.status==='WAIVED'?'~':cond.status==='FAILED'?'✗':'○'}
+          </span>
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-gray-900">${cond.name}</p>
+            ${cond.desc?`<p class="text-xs text-gray-400 mt-0.5">${cond.desc}</p>`:''}
+            <div class="flex items-center gap-3 mt-1 text-xs text-gray-400">
+              ${cond.assignedTo?`<span>→ ${cond.assignedTo}</span>`:''}
+              ${cond.metAt?`<span class="text-green-600">Met ${cond.metAt}</span>`:''}
+            </div>
+          </div>
+        </div>
+        <div class="flex-shrink-0 flex gap-2" id="actions-${cond.id}"></div>
+      </div>`;
+
+    const actions = card.querySelector(`#actions-${cond.id}`);
+    if (cond.status === 'PENDING') {
+      const markBtn = btn('Mark Met',
+        'text-xs px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors',
+        () => markConditionMet(deal.id, cond.id));
+      actions.appendChild(markBtn);
+      if (isConveyancer()) {
+        const waiveBtn = btn('Waive',
+          'text-xs px-3 py-1.5 bg-white text-amber-600 border border-amber-300 rounded-lg hover:bg-amber-50 transition-colors',
+          () => {
+            if (confirm(`Waive "${cond.name}"?`)) {
+              cond.status = 'WAIVED';
+              cond.metAt = 'Just now';
+              showToast(`"${cond.name}" waived`);
+            }
+          });
+        actions.appendChild(waiveBtn);
+      }
+    }
+    wrap.appendChild(card);
+  });
+  return wrap;
+}
+
+function buildDocumentsTab(deal) {
+  if (deal.documents.length === 0) return '<p class="text-sm text-gray-400 text-center py-6">No documents uploaded yet.</p>';
+  return deal.documents.map(doc => `
+    <div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-gray-900">${doc.name}</p>
+          <p class="text-xs text-gray-400">${doc.size} · Uploaded ${doc.uploaded} by ${doc.by}</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        ${doc.verified
+          ? '<span class="inline-flex items-center gap-1 text-xs text-green-700 bg-green-100 px-2 py-1 rounded-full font-medium">✓ Verified</span>'
+          : '<span class="inline-flex items-center gap-1 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">Unverified</span>'}
+        <button onclick="showToast('Download started (mock)')" class="text-xs text-indigo-600 hover:text-indigo-700 font-medium">Download</button>
+      </div>
+    </div>`).join('');
+}
+
+function buildAuditTab(deal) {
+  const logs = [
+    { action:'DEAL_CREATED', user:'Jane Cooper', time:'15 Mar 09:00', detail:'Reference PSOS-2024-0042 created' },
+    { action:'PARTY_ADDED', user:'Jane Cooper', time:'15 Mar 09:02', detail:'Michael Torres added as Buyer' },
+    { action:'DEAL_STATUS_CHANGED', user:'System', time:'15 Mar 09:05', detail:'INIT → ACTIVE' },
+    { action:'CONDITION_MET', user:'Jane Cooper', time:'20 Mar 14:30', detail:'Finance Approval marked as met' },
+    { action:'DOCUMENT_UPLOADED', user:'Michael Torres', time:'22 Mar 10:15', detail:'Building Inspection Report.pdf uploaded' },
+  ];
+  return `<div class="space-y-1">
+    ${logs.map(l=>`
+      <div class="flex items-start gap-3 py-2.5 border-b border-gray-50 last:border-0">
+        <span class="text-xs font-mono bg-gray-100 text-gray-600 px-2 py-0.5 rounded flex-shrink-0 mt-0.5">${l.action}</span>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm text-gray-700">${l.detail}</p>
+          <p class="text-xs text-gray-400 mt-0.5">${l.user} · ${l.time}</p>
+        </div>
+      </div>`).join('')}
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MESSAGES TAB
+// ═══════════════════════════════════════════════════════════════════════════
+function buildMessagesTab(deal) {
+  // If stored party is not in this deal, clear it
+  if (APP.messagesParty && !deal.parties.find(p => p.name === APP.messagesParty)) {
+    APP.messagesParty = null;
+  }
+
+  const otherParties = deal.parties.filter(p => p.name !== APP.currentUser?.name);
+  const wrap = el('div', 'flex gap-0 min-h-[360px]');
+
+  // ── Party list (left column) ─────────────────────────────────────────────
+  const sidebar = el('div', 'w-52 border-r border-gray-100 pr-4 flex-shrink-0');
+  const sideHead = el('p', 'text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3');
+  sideHead.textContent = 'Parties';
+  sidebar.appendChild(sideHead);
+
+  if (otherParties.length === 0) {
+    const empty = el('p', 'text-xs text-gray-400');
+    empty.textContent = 'No other parties on this deal.';
+    sidebar.appendChild(empty);
+  }
+
+  otherParties.forEach(party => {
+    const key = `${deal.id}_${party.name}`;
+    const msgs = APP.dealMessages[key] || [];
+    const lastMsg = msgs[msgs.length - 1];
+    const isActive = APP.messagesParty === party.name;
+
+    const row = el('button',
+      `w-full text-left px-2 py-2.5 rounded-lg mb-0.5 transition-colors ${isActive ? 'bg-indigo-50 border border-indigo-100' : 'hover:bg-gray-50 border border-transparent'}`
+    );
+    row.onclick = () => { APP.messagesParty = party.name; render(); };
+    row.innerHTML = `
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-full flex-shrink-0 ${party.color} flex items-center justify-center">
+          <span class="text-[9px] font-bold">${party.initials}</span>
+        </div>
+        <div class="min-w-0">
+          <p class="text-xs font-semibold text-gray-900 truncate">${party.name}</p>
+          <p class="text-[10px] text-gray-400 truncate">${party.role}</p>
+        </div>
+      </div>
+      ${lastMsg ? `<p class="text-[10px] text-gray-400 mt-1 truncate pl-9">${lastMsg.text}</p>` : `<p class="text-[10px] text-gray-400 mt-1 pl-9 italic">No messages yet</p>`}`;
+    sidebar.appendChild(row);
+  });
+
+  wrap.appendChild(sidebar);
+
+  // ── Chat area (right column) ─────────────────────────────────────────────
+  const chat = el('div', 'flex-1 flex flex-col pl-5');
+
+  if (!APP.messagesParty) {
+    const placeholder = el('div', 'flex-1 flex flex-col items-center justify-center text-center py-12');
+    placeholder.innerHTML = `
+      <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+        <svg class="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+        </svg>
+      </div>
+      <p class="text-sm font-medium text-gray-600">Select a party to message</p>
+      <p class="text-xs text-gray-400 mt-1">Messages are internal to this deal</p>`;
+    chat.appendChild(placeholder);
+  } else {
+    const party = deal.parties.find(p => p.name === APP.messagesParty);
+    const key = `${deal.id}_${APP.messagesParty}`;
+    const msgs = APP.dealMessages[key] || [];
+
+    // Header
+    const header = el('div', 'flex items-center gap-2.5 pb-3 mb-3 border-b border-gray-100');
+    header.innerHTML = `
+      <div class="w-8 h-8 rounded-full flex-shrink-0 ${party?.color || 'bg-gray-100'} flex items-center justify-center">
+        <span class="text-xs font-bold">${party?.initials || '?'}</span>
+      </div>
+      <div>
+        <p class="text-sm font-semibold text-gray-900">${APP.messagesParty}</p>
+        <p class="text-xs text-gray-400">${party?.role || ''} · Internal deal message</p>
+      </div>`;
+    chat.appendChild(header);
+
+    // Message thread
+    const feed = el('div', 'flex-1 overflow-y-auto space-y-3 mb-3');
+    feed.style.maxHeight = '240px';
+    feed.style.minHeight = '160px';
+
+    if (msgs.length === 0) {
+      feed.innerHTML = `<div class="flex items-center justify-center h-full py-8">
+        <p class="text-xs text-gray-400 italic">No messages yet — start the conversation below.</p>
+      </div>`;
+    } else {
+      msgs.forEach(msg => {
+        const isMe = msg.sender === APP.currentUser?.name;
+        const row = el('div', `flex ${isMe ? 'justify-end' : 'justify-start'}`);
+        row.innerHTML = `
+          <div class="max-w-[78%]">
+            ${!isMe ? `<p class="text-[10px] text-gray-400 mb-1 ml-1">${msg.sender}</p>` : ''}
+            <div class="px-3.5 py-2 rounded-2xl text-sm leading-relaxed ${isMe ? 'bg-indigo-600 text-white rounded-br-sm' : 'bg-gray-100 text-gray-800 rounded-bl-sm'}">
+              ${msg.text}
+            </div>
+            <p class="text-[10px] text-gray-400 mt-1 ${isMe ? 'text-right mr-1' : 'ml-1'}">${msg.time}</p>
+          </div>`;
+        feed.appendChild(row);
+      });
+      // Scroll to bottom
+      setTimeout(() => { feed.scrollTop = feed.scrollHeight; }, 0);
+    }
+    chat.appendChild(feed);
+
+    // Input row
+    const inputRow = el('div', 'flex gap-2');
+    const safeParty = APP.messagesParty.replace(/'/g, "\\'");
+    inputRow.innerHTML = `
+      <input id="msgInput_${deal.id}" type="text" placeholder="Message ${APP.messagesParty.split(' ')[0]}..."
+        class="flex-1 text-sm px-3 py-2 rounded-lg border border-gray-300 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+        onkeydown="if(event.key==='Enter'){sendDealMessage('${deal.id}','${safeParty}')}"/>
+      <button onclick="sendDealMessage('${deal.id}','${safeParty}')"
+        class="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex-shrink-0">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+        </svg>
+      </button>`;
+    chat.appendChild(inputRow);
+  }
+
+  wrap.appendChild(chat);
+  return wrap;
+}
+
+function sendDealMessage(dealId, partyName) {
+  const input = document.getElementById(`msgInput_${dealId}`);
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) return;
+  const key = `${dealId}_${partyName}`;
+  if (!APP.dealMessages[key]) APP.dealMessages[key] = [];
+  const now = new Date();
+  const time = now.toLocaleTimeString('en-AU', { hour:'2-digit', minute:'2-digit' });
+  APP.dealMessages[key].push({
+    id: 'msg_' + Date.now(),
+    sender: APP.currentUser.name,
+    senderRole: APP.currentUser.role,
+    text,
+    time: 'Today ' + time,
+  });
+  input.value = '';
+  APP.messagesParty = partyName;
+  render();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SETTLEMENT PANEL
+// ═══════════════════════════════════════════════════════════════════════════
+function buildSettlementPanel(deal) {
+  const panel = el('div', 'bg-white rounded-xl border border-gray-200 p-5');
+
+  if (deal.status === 'SETTLED') {
+    panel.innerHTML = `
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+          <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+        </div>
+        <div>
+          <p class="font-semibold text-green-800">Settled</p>
+          <p class="text-xs text-green-600">${deal.pexaRef?'PEXA ref: '+deal.pexaRef:'Transaction complete'}</p>
+        </div>
+      </div>`;
+    return panel;
+  }
+
+  panel.innerHTML = `<h3 class="font-semibold text-gray-900 mb-4">Settlement</h3><div id="settlPanel"></div>`;
+  const inner = panel.querySelector('#settlPanel');
+
+  if (!isConveyancer()) {
+    inner.innerHTML = `
+      <p class="text-sm text-gray-500">Status: <span class="font-medium text-gray-800">${deal.status}</span></p>
+      <p class="text-sm text-gray-500 mt-1">Settlement: <span class="font-medium text-gray-800">${deal.settlementDate||'TBC'}</span></p>`;
+    return panel;
+  }
+
+  if (deal.status === 'ACTIVE') {
+    const validateBtn = btn('Check Settlement Readiness',
+      'w-full py-2.5 px-4 text-sm font-medium rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-colors',
+      () => { validateSettlement(); });
+    inner.appendChild(validateBtn);
+
+    if (APP.settlementValidated && APP.settlementResult) {
+      const res = APP.settlementResult;
+      const resultDiv = el('div', `mt-3 p-4 rounded-lg border ${res.canSettle?'bg-green-50 border-green-200':'bg-amber-50 border-amber-200'}`);
+      let html = `<p class="text-sm font-semibold ${res.canSettle?'text-green-800':'text-amber-800'}">${res.canSettle?'✓ Ready to settle':'⚠ Not ready to settle'}</p>`;
+      if (res.blockers.length > 0) {
+        html += `<ul class="mt-2 space-y-1">${res.blockers.map(b=>`<li class="text-xs text-amber-700 flex gap-1"><span>•</span>${b}</li>`).join('')}</ul>`;
+      }
+      if (res.canSettle) {
+        html += `<div class="mt-3">`;
+      }
+      resultDiv.innerHTML = html;
+      inner.appendChild(resultDiv);
+
+      if (res.canSettle) {
+        const approveBtn = btn('Approve for Settlement',
+          'mt-3 w-full py-2.5 px-4 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors',
+          () => approveSettlement());
+        inner.appendChild(approveBtn);
+      }
+    }
+  }
+
+  if (deal.status === 'READY') {
+    inner.innerHTML = `
+      <div class="p-3 bg-amber-50 border border-amber-200 rounded-lg mb-3 text-sm text-amber-800">
+        <strong>Ready to settle.</strong> This will trigger PEXA and release escrow.
+      </div>`;
+    const execBtn = btn(
+      `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Execute Settlement`,
+      'w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors',
+      () => executeSettlement()
+    );
+    inner.appendChild(execBtn);
+  }
+
+  return panel;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ACTIVITY FEED
+// ═══════════════════════════════════════════════════════════════════════════
+function buildActivityFeed(deal) {
+  const panel = el('div', 'bg-white rounded-xl border border-gray-200 flex flex-col');
+  panel.style.maxHeight = '420px';
+  panel.innerHTML = `
+    <div class="p-4 border-b border-gray-100">
+      <h3 class="font-semibold text-gray-900">Activity</h3>
+      <p class="text-xs text-gray-400 mt-0.5">Replaces email communication</p>
+    </div>
+    <div class="flex-1 overflow-y-auto p-3 space-y-2" id="feedItems"></div>
+    <div class="p-3 border-t border-gray-100 flex gap-2">
+      <input id="commentInput" class="flex-1 text-sm px-3 py-2 rounded-lg border border-gray-300 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="Add a comment..."/>
+      <button onclick="
+        var v=document.getElementById('commentInput').value.trim();
+        if(v){APP.newComment=v;addComment();}
+      " class="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+        </svg>
+      </button>
+    </div>`;
+
+  const feed = panel.querySelector('#feedItems');
+  deal.activity.forEach(a => {
+    const item = el('div', `border rounded-lg p-3 text-sm ${a.bg||'bg-white border-gray-200'}`);
+    item.innerHTML = `
+      <div class="flex items-start gap-2">
+        <span class="text-base flex-shrink-0 mt-0.5">${a.icon||'•'}</span>
+        <div class="flex-1 min-w-0">
+          <p class="text-gray-800">${a.msg}</p>
+          <div class="flex items-center gap-2 mt-1 text-xs text-gray-400">
+            ${a.name?`<span class="font-medium text-gray-600">${a.name}</span>`:''}
+            ${a.role?`<span class="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded text-[10px]">${a.role}</span>`:''}
+            <span class="ml-auto">${a.time}</span>
+          </div>
+        </div>
+      </div>`;
+    feed.appendChild(item);
+  });
+
+  const input = panel.querySelector('#commentInput');
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const v = input.value.trim();
+      if (v) { APP.newComment = v; addComment(); }
+    }
+  });
+
+  return panel;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONVEYANCER PIPELINE
+// ═══════════════════════════════════════════════════════════════════════════
+function buildConveyancer() {
+  const deals = APP.deals;
+  const actionRequired = deals.filter(d => d.status==='READY' || (d.status==='ACTIVE' && condMetCount(d)===d.conditions.length && d.conditions.length>0));
+
+  const page = el('div', 'p-8');
+  page.innerHTML = `
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Conveyancer Pipeline</h1>
+        <p class="text-sm text-gray-400 mt-0.5">Overview of all active matters</p>
+      </div>
+    </div>
+
+    ${actionRequired.length>0?`
+    <div class="mb-8">
+      <h2 class="text-sm font-semibold text-red-600 uppercase tracking-wide mb-3 flex items-center gap-2">
+        <span class="w-2 h-2 bg-red-500 rounded-full pulse-dot"></span>
+        Action Required (${actionRequired.length})
+      </h2>
+      <div class="space-y-2" id="actionCards"></div>
+    </div>`:''}
+
+    <h2 class="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-4">Full Pipeline</h2>
+    <div class="grid grid-cols-4 gap-4" id="kanban"></div>`;
+
+  if (actionRequired.length > 0) {
+    const container = page.querySelector('#actionCards');
+    actionRequired.forEach(deal => {
+      const card = el('div', 'bg-white rounded-xl border border-gray-200 border-l-4 border-l-red-400 p-4 flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow');
+      card.onclick = () => setView('workspace', deal.id);
+      card.innerHTML = `
+        <div>
+          <p class="font-medium text-gray-900 text-sm">${deal.address.split(',')[0]}</p>
+          <p class="text-xs text-gray-400 mt-0.5">${deal.referenceNo} · ${fmtPrice(deal.price)}</p>
+        </div>
+        <div class="flex items-center gap-3">
+          ${deal.status==='READY'
+            ? '<span class="text-xs font-medium text-amber-700 bg-amber-100 px-2 py-1 rounded-full">Approve Settlement</span>'
+            : '<span class="text-xs font-medium text-indigo-700 bg-indigo-100 px-2 py-1 rounded-full">All Conditions Met</span>'}
+          <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        </div>`;
+      container.appendChild(card);
+    });
+  }
+
+  const kanban = page.querySelector('#kanban');
+  const cols = ['INIT','ACTIVE','READY','SETTLED'];
+  const colLabels = { INIT:'Initiated', ACTIVE:'In Progress', READY:'Ready to Settle', SETTLED:'Settled' };
+  const colColors = { INIT:'bg-gray-100 text-gray-700', ACTIVE:'bg-blue-100 text-blue-700', READY:'bg-amber-100 text-amber-700', SETTLED:'bg-green-100 text-green-700' };
+
+  cols.forEach(status => {
+    const colDeals = deals.filter(d=>d.status===status);
+    const col = el('div', 'bg-gray-50 rounded-xl p-3 border border-gray-200');
+    col.innerHTML = `
+      <div class="flex items-center justify-between mb-3">
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colColors[status]}">${colLabels[status]}</span>
+        <span class="text-xs text-gray-400">${colDeals.length}</span>
+      </div>
+      <div class="space-y-2" id="col-${status}"></div>
+      ${colDeals.length===0?'<p class="text-xs text-gray-400 text-center py-4">No deals</p>':''}`;
+    const colContainer = col.querySelector(`#col-${status}`);
+    colDeals.forEach(d => {
+      const card = el('div', 'bg-white rounded-lg border border-gray-200 p-3 cursor-pointer hover:shadow-md transition-shadow');
+      card.onclick = () => setView('workspace', d.id);
+      const met = condMetCount(d), total = d.conditions.length;
+      const pct = total > 0 ? Math.round(met/total*100) : 0;
+      card.innerHTML = `
+        <p class="text-xs font-semibold text-gray-900 leading-tight truncate">${d.address.split(',')[0]}</p>
+        <p class="text-[10px] text-gray-400 mt-0.5">${d.referenceNo}</p>
+        ${d.daysToSettle!=null&&d.status!=='SETTLED'?`<p class="text-[10px] text-gray-500 mt-1">${d.daysToSettle}d</p>`:''}
+        ${total>0?`<div class="mt-1.5 h-1 bg-gray-100 rounded-full overflow-hidden">
+          <div class="h-full bg-green-500 rounded-full" style="width:${pct}%"></div>
+        </div>`:''}`;
+      colContainer.appendChild(card);
+    });
+    kanban.appendChild(col);
+  });
+
+  return page;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DOCUMENTS PAGE
+// ═══════════════════════════════════════════════════════════════════════════
+function buildDocuments() {
+  const allDocs = APP.deals.flatMap(d =>
+    d.documents.map(doc => ({ ...doc, dealRef: d.referenceNo, dealAddress: d.address.split(',')[0], dealId: d.id }))
+  );
+
+  const page = el('div', 'p-8');
+  page.innerHTML = `
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-2xl font-bold text-gray-900">Documents</h1>
+      <button onclick="showToast('Select a deal to upload documents')" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+        Upload
+      </button>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Document</th>
+            <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Deal</th>
+            <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Type</th>
+            <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
+            <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Uploaded</th>
+            <th class="px-5 py-3"></th>
+          </tr>
+        </thead>
+        <tbody id="docsTable"></tbody>
+      </table>
+      ${allDocs.length===0?'<p class="text-center text-sm text-gray-400 py-12">No documents across any deals.</p>':''}
+    </div>`;
+
+  const tbody = page.querySelector('#docsTable');
+  allDocs.forEach(doc => {
+    const tr = document.createElement('tr');
+    tr.className = 'border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer';
+    tr.onclick = () => setView('workspace', doc.dealId);
+    tr.innerHTML = `
+      <td class="px-5 py-3.5">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+            <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+          </div>
+          <div>
+            <p class="font-medium text-gray-900">${doc.name}</p>
+            <p class="text-xs text-gray-400">${doc.size}</p>
+          </div>
+        </div>
+      </td>
+      <td class="px-5 py-3.5">
+        <p class="text-gray-700">${doc.dealAddress}</p>
+        <p class="text-xs text-gray-400">${doc.dealRef}</p>
+      </td>
+      <td class="px-5 py-3.5"><span class="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">${doc.type.replace(/_/g,' ')}</span></td>
+      <td class="px-5 py-3.5">
+        ${doc.verified
+          ? '<span class="inline-flex items-center gap-1 text-xs text-green-700 bg-green-100 px-2 py-1 rounded-full font-medium">✓ Verified</span>'
+          : '<span class="inline-flex items-center gap-1 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">Pending</span>'}
+      </td>
+      <td class="px-5 py-3.5 text-xs text-gray-400">${doc.uploaded} by ${doc.by}</td>
+      <td class="px-5 py-3.5">
+        <button onclick="event.stopPropagation();showToast('Download started (mock)')" class="text-xs text-indigo-600 hover:text-indigo-700 font-medium">↓</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+
+  return page;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WALLET MODAL
+// ═══════════════════════════════════════════════════════════════════════════
+function buildPaymentModal() {
+  const tab = APP._paymentModalTab || 'wallet';
+  const overlay = el('div', 'fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm');
+  overlay.onclick = (e) => { if (e.target === overlay) { APP.showPaymentModal = false; render(); } };
+  overlay.innerHTML = `
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 fade-in" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between p-6 border-b border-gray-100">
+        <h2 class="text-xl font-bold text-gray-900">Payment</h2>
+        <button onclick="APP.showPaymentModal=false;render()" class="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+      </div>
+
+      <!-- Tabs -->
+      <div class="flex border-b border-gray-100">
+        <button onclick="APP._paymentModalTab='wallet';render()"
+          class="flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${tab==='wallet'?'border-indigo-500 text-indigo-600':'border-transparent text-gray-500 hover:text-gray-700'}">
+          Crypto Wallet
+        </button>
+        <button onclick="APP._paymentModalTab='bank';render()"
+          class="flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${tab==='bank'?'border-indigo-500 text-indigo-600':'border-transparent text-gray-500 hover:text-gray-700'}">
+          Direct Deposit
+        </button>
+      </div>
+
+      <div class="p-6">
+        ${tab === 'wallet' ? `
+        ${APP.walletConnected ? `
+          <div class="bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex items-center gap-3 mb-4">
+            <span class="w-2.5 h-2.5 bg-green-500 rounded-full pulse-dot flex-shrink-0"></span>
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-green-800">Wallet connected</p>
+              <p class="text-xs text-green-600 font-mono truncate">${APP.walletAddress}</p>
+            </div>
+            <button onclick="APP.walletConnected=false;APP.walletAddress=null;render()" class="ml-auto text-xs text-gray-400 hover:text-red-500 flex-shrink-0">Disconnect</button>
+          </div>` : `
+          <p class="text-sm text-gray-500 mb-4">Connect your crypto wallet to pay with or receive returns in BTC, ETH or SOL.</p>`}
+        <div class="space-y-3">
+          <button onclick="connectWallet('metamask')"
+            class="w-full flex items-center gap-4 px-4 py-3.5 border-2 border-gray-200 hover:border-orange-400 hover:bg-orange-50 rounded-xl transition-all group">
+            <div class="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">🦊</div>
+            <div class="text-left">
+              <p class="font-semibold text-gray-900 group-hover:text-orange-700">MetaMask</p>
+              <p class="text-xs text-gray-400">BTC &amp; ETH payments</p>
+            </div>
+            ${APP.walletType==='metamask'?'<span class="ml-auto text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Active</span>':''}
+          </button>
+          <button onclick="connectWallet('phantom')"
+            class="w-full flex items-center gap-4 px-4 py-3.5 border-2 border-gray-200 hover:border-purple-400 hover:bg-purple-50 rounded-xl transition-all group">
+            <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">👻</div>
+            <div class="text-left">
+              <p class="font-semibold text-gray-900 group-hover:text-purple-700">Phantom</p>
+              <p class="text-xs text-gray-400">SOL payments</p>
+            </div>
+            ${APP.walletType==='phantom'?'<span class="ml-auto text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Active</span>':''}
+          </button>
+          <button onclick="connectWallet('walletconnect')"
+            class="w-full flex items-center gap-4 px-4 py-3.5 border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 rounded-xl transition-all group">
+            <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">🔗</div>
+            <div class="text-left">
+              <p class="font-semibold text-gray-900 group-hover:text-blue-700">WalletConnect</p>
+              <p class="text-xs text-gray-400">All supported chains</p>
+            </div>
+            ${APP.walletType==='walletconnect'?'<span class="ml-auto text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Active</span>':''}
+          </button>
+        </div>
+        <p class="text-center text-xs text-gray-400 mt-5">Demo — no real wallet connection</p>
+        ` : `
+        <p class="text-sm text-gray-500 mb-4">Transfer funds directly to our trust account. Use the reference below so we can match your payment.</p>
+        <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 space-y-3 mb-4">
+          <p class="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-2">Settlement OS Trust Account</p>
+          <div class="flex justify-between text-sm">
+            <span class="text-gray-500">BSB</span>
+            <span class="font-mono font-bold text-gray-900">062-000</span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span class="text-gray-500">Account Number</span>
+            <span class="font-mono font-bold text-gray-900">1234 5678</span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span class="text-gray-500">Account Name</span>
+            <span class="font-semibold text-gray-900">Settlement OS Trust</span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span class="text-gray-500">Bank</span>
+            <span class="font-semibold text-gray-900">Commonwealth Bank</span>
+          </div>
+          <div class="border-t border-indigo-200 pt-3 flex justify-between text-sm">
+            <span class="text-gray-500">Your Reference</span>
+            <span class="font-mono font-bold text-indigo-700">SOS-${Math.random().toString(36).substring(2,8).toUpperCase()}</span>
+          </div>
+        </div>
+        <p class="text-xs text-gray-400">Funds are held in trust and released upon settlement confirmation. Contact support@settlementos.com.au for assistance.</p>
+        `}
+      </div>
+    </div>`;
+  return overlay;
+}
+
+function buildCheckoutModal() {
+  const pool = MOCK_POOLS.find(p => p.id === APP.checkoutPoolId);
+  const gross = APP.checkoutAmount;
+  const fee = parseFloat((gross * PLATFORM_FEE_RATE).toFixed(2));
+  const net = parseFloat((gross - fee).toFixed(2));
+  const crypto = APP.selectedCrypto;
+  const feeCrypto = cryptoEquiv(fee, crypto);
+  const pm = APP.checkoutPaymentMethod;
+  const confirmLabel = { visa:'Pay with Visa', mastercard:'Pay with Mastercard', paypal:'Continue to PayPal', crypto:'Confirm with Crypto', bank:'Confirm — I\'ll Transfer' };
+  const overlay = el('div', 'fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm overflow-y-auto py-6');
+  overlay.onclick = (e) => { if (e.target === overlay) { APP.checkoutPoolId = null; APP.checkoutAmount = 0; render(); } };
+  overlay.innerHTML = `
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 fade-in" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between p-6 border-b border-gray-100">
+        <div>
+          <h2 class="text-xl font-bold text-gray-900">Confirm Investment</h2>
+          <p class="text-sm text-gray-400 mt-0.5">${pool.name}</p>
+        </div>
+        <button onclick="APP.checkoutPoolId=null;APP.checkoutAmount=0;render()" class="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+      </div>
+
+      <div class="p-6">
+        <!-- Payment Method Selector -->
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Pay with</p>
+        <div class="grid grid-cols-5 gap-2 mb-5">
+          ${[
+            { id:'visa', label:'Visa', icon:`<div class="bg-[#1A1F71] text-white text-xs font-extrabold px-2 py-0.5 rounded tracking-widest leading-tight">VISA</div>` },
+            { id:'mastercard', label:'MC', icon:`<div class="flex"><div class="w-4 h-4 bg-[#EB001B] rounded-full"></div><div class="w-4 h-4 bg-[#F79E1B] rounded-full -ml-1.5 opacity-90"></div></div>` },
+            { id:'paypal', label:'PayPal', icon:`<div class="text-xs font-bold leading-none"><span class="text-[#003087]">Pay</span><span class="text-[#009cde]">Pal</span></div>` },
+            { id:'crypto', label:'Crypto', icon:`<div class="text-base font-bold text-orange-500">₿</div>` },
+            { id:'bank', label:'Bank', icon:`<div class="text-base">🏦</div>` },
+          ].map(m => `
+          <button onclick="APP.checkoutPaymentMethod='${m.id}';render()" type="button"
+            class="flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 transition-all ${pm===m.id?'border-indigo-500 bg-indigo-50 shadow-sm':'border-gray-200 hover:border-gray-300 bg-white'}">
+            ${m.icon}
+            <span class="text-xs ${pm===m.id?'text-indigo-700 font-semibold':'text-gray-500'}">${m.label}</span>
+          </button>`).join('')}
+        </div>
+
+        <!-- Payment Details -->
+        ${pm === 'visa' || pm === 'mastercard' ? `
+        <div class="space-y-3 mb-5">
+          <div>
+            <label class="text-xs font-medium text-gray-500 mb-1.5 block">Card number</label>
+            <div class="border border-gray-300 rounded-lg px-3 py-2.5 flex items-center gap-2 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500">
+              <input class="flex-1 text-sm outline-none placeholder-gray-300 bg-transparent" placeholder="1234 5678 9012 3456" maxlength="19"/>
+              ${pm==='visa'?`<div class="bg-[#1A1F71] text-white text-xs font-extrabold px-1.5 py-0.5 rounded tracking-wider flex-shrink-0">VISA</div>`:
+                `<div class="flex flex-shrink-0"><div class="w-4 h-4 bg-[#EB001B] rounded-full"></div><div class="w-4 h-4 bg-[#F79E1B] rounded-full -ml-1.5 opacity-90"></div></div>`}
+            </div>
+          </div>
+          <div class="flex gap-3">
+            <div class="flex-1">
+              <label class="text-xs font-medium text-gray-500 mb-1.5 block">Expiry date</label>
+              <input class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 placeholder-gray-300" placeholder="MM / YY" maxlength="7"/>
+            </div>
+            <div class="flex-1">
+              <label class="text-xs font-medium text-gray-500 mb-1.5 block">CVC</label>
+              <input class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 placeholder-gray-300" placeholder="123" maxlength="4"/>
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-gray-500 mb-1.5 block">Name on card</label>
+            <input class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 placeholder-gray-300" placeholder="e.g. Jane Smith"/>
+          </div>
+          <div class="flex items-center gap-2 text-xs text-gray-400">
+            <svg class="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+            Secured by <span class="font-semibold text-indigo-500">Stripe</span> — PCI DSS compliant
+          </div>
+        </div>` :
+        pm === 'paypal' ? `
+        <div class="mb-5">
+          <div class="bg-[#FFC439] rounded-xl py-3 px-4 flex items-center justify-center gap-2 cursor-pointer hover:bg-[#f0b429] transition-colors">
+            <span class="text-sm font-bold"><span class="text-[#003087]">Pay</span><span class="text-[#009cde]">Pal</span></span>
+            <span class="text-sm font-semibold text-[#003087]">Checkout</span>
+          </div>
+          <p class="text-xs text-gray-400 text-center mt-2">You'll complete payment securely on PayPal</p>
+        </div>` :
+        pm === 'crypto' ? `
+        <div class="mb-5">
+          ${APP.walletConnected
+            ? `<div class="bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex items-center gap-3">
+                <span class="w-2.5 h-2.5 bg-green-500 rounded-full flex-shrink-0"></span>
+                <div><p class="text-sm font-semibold text-green-800">Wallet connected</p><p class="text-xs text-green-600 font-mono">${APP.walletAddress}</p></div>
+                <button onclick="APP.walletConnected=false;APP.walletAddress=null;render()" class="ml-auto text-xs text-gray-400 hover:text-red-500">Disconnect</button>
+               </div>`
+            : `<button onclick="APP.showPaymentModal=true;render()"
+                class="w-full py-3 border-2 border-dashed border-gray-300 text-sm text-gray-500 rounded-xl hover:border-indigo-400 hover:text-indigo-600 transition-colors">
+                + Connect Wallet
+               </button>`}
+          <div class="flex gap-2 mt-3">
+            ${['BTC','ETH','SOL'].map(c=>`
+            <button onclick="APP.selectedCrypto='${c}';render()"
+              class="flex-1 py-2 rounded-lg border-2 text-xs font-semibold transition-all ${APP.selectedCrypto===c?'border-indigo-500 bg-indigo-50 text-indigo-700':'border-gray-200 text-gray-500 hover:border-gray-300'}">
+              ${CRYPTO_SYMBOLS[c]} ${c}
+            </button>`).join('')}
+          </div>
+        </div>` :
+        `<div class="mb-5 bg-indigo-50 border border-indigo-100 rounded-xl p-4 space-y-2">
+          <p class="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-2">Settlement OS Trust Account</p>
+          <div class="flex justify-between text-sm"><span class="text-gray-500">BSB</span><span class="font-mono font-bold text-gray-900">062-000</span></div>
+          <div class="flex justify-between text-sm"><span class="text-gray-500">Account</span><span class="font-mono font-bold text-gray-900">1234 5678</span></div>
+          <div class="flex justify-between text-sm"><span class="text-gray-500">Account Name</span><span class="font-semibold text-gray-900">Settlement OS Trust</span></div>
+          <div class="border-t border-indigo-200 pt-2 flex justify-between text-sm"><span class="text-gray-500">Reference</span><span class="font-mono font-bold text-indigo-700">INV-${Date.now().toString(36).slice(-6).toUpperCase()}</span></div>
+        </div>`}
+
+        <!-- Fee Summary -->
+        <div class="bg-gray-50 rounded-xl p-4 space-y-2.5 mb-5">
+          <div class="flex justify-between text-sm"><span class="text-gray-500">Investment amount</span><span class="font-semibold text-gray-900">A$${gross.toLocaleString()}</span></div>
+          <div class="flex justify-between text-sm"><span class="text-gray-500">Platform fee (2%)</span><span class="font-semibold text-rose-600">− A$${fee.toLocaleString()} <span class="text-gray-400 font-normal">(${CRYPTO_SYMBOLS[crypto]} ${feeCrypto})</span></span></div>
+          <div class="border-t border-gray-200 pt-2.5 flex justify-between text-sm"><span class="text-gray-700 font-medium">Net to pool</span><span class="font-bold text-gray-900">A$${net.toLocaleString()}</span></div>
+          <div class="flex justify-between text-sm"><span class="text-gray-500">Returns paid in</span><span class="font-semibold text-indigo-600">${CRYPTO_NAMES[crypto]}</span></div>
+        </div>
+
+        <div class="flex gap-3">
+          <button onclick="APP.checkoutPoolId=null;APP.checkoutAmount=0;render()"
+            class="flex-1 py-2.5 border border-gray-200 text-gray-600 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-colors">
+            Cancel
+          </button>
+          <button onclick="confirmInvestment()"
+            class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors">
+            ${confirmLabel[pm] || 'Confirm'}
+          </button>
+        </div>
+        <p class="text-center text-xs text-gray-400 mt-3">2% platform fee deducted before funds reach the pool.</p>
+      </div>
+    </div>`;
+  return overlay;
+}
+
+function buildBuyNowModal() {
+  const listing = MOCK_LISTINGS.find(l => l.id === APP.buyNowListingId);
+  const price = listing.price;
+  const fee = parseFloat((price * PLATFORM_FEE_RATE).toFixed(2));
+  const net = parseFloat((price - fee).toFixed(2));
+  const pm = APP.checkoutPaymentMethod;
+  const confirmLabel = { visa:'Pay with Visa', mastercard:'Pay with Mastercard', paypal:'Continue to PayPal', crypto:'Pay with Crypto', bank:'Confirm — I\'ll Transfer' };
+  const overlay = el('div', 'fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm overflow-y-auto py-6');
+  overlay.onclick = (e) => { if (e.target === overlay) { APP.buyNowListingId = null; render(); } };
+  overlay.innerHTML = `
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 fade-in" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between p-6 border-b border-gray-100">
+        <div>
+          <h2 class="text-xl font-bold text-gray-900">Purchase Property</h2>
+          <p class="text-sm text-gray-500 mt-0.5">${listing.address}</p>
+          <p class="text-xs text-gray-400">${listing.suburb}${listing.state==='BALI'?' · Bali, Indonesia':' '+listing.state+' '+listing.postcode}</p>
+        </div>
+        <button onclick="APP.buyNowListingId=null;render()" class="text-gray-400 hover:text-gray-600 text-xl leading-none flex-shrink-0 ml-4">&times;</button>
+      </div>
+
+      <div class="p-6">
+        <!-- Payment Method Selector -->
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Pay with</p>
+        <div class="grid grid-cols-5 gap-2 mb-5">
+          ${[
+            { id:'visa', label:'Visa', icon:`<div class="bg-[#1A1F71] text-white text-xs font-extrabold px-2 py-0.5 rounded tracking-widest leading-tight">VISA</div>` },
+            { id:'mastercard', label:'MC', icon:`<div class="flex"><div class="w-4 h-4 bg-[#EB001B] rounded-full"></div><div class="w-4 h-4 bg-[#F79E1B] rounded-full -ml-1.5 opacity-90"></div></div>` },
+            { id:'paypal', label:'PayPal', icon:`<div class="text-xs font-bold leading-none"><span class="text-[#003087]">Pay</span><span class="text-[#009cde]">Pal</span></div>` },
+            { id:'crypto', label:'Crypto', icon:`<div class="text-base font-bold text-orange-500">₿</div>` },
+            { id:'bank', label:'Bank', icon:`<div class="text-base">🏦</div>` },
+          ].map(m => `
+          <button onclick="APP.checkoutPaymentMethod='${m.id}';render()" type="button"
+            class="flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 transition-all ${pm===m.id?'border-indigo-500 bg-indigo-50 shadow-sm':'border-gray-200 hover:border-gray-300 bg-white'}">
+            ${m.icon}
+            <span class="text-xs ${pm===m.id?'text-indigo-700 font-semibold':'text-gray-500'}">${m.label}</span>
+          </button>`).join('')}
+        </div>
+
+        <!-- Payment Details -->
+        ${pm === 'visa' || pm === 'mastercard' ? `
+        <div class="space-y-3 mb-5">
+          <div>
+            <label class="text-xs font-medium text-gray-500 mb-1.5 block">Card number</label>
+            <div class="border border-gray-300 rounded-lg px-3 py-2.5 flex items-center gap-2 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500">
+              <input class="flex-1 text-sm outline-none placeholder-gray-300 bg-transparent" placeholder="1234 5678 9012 3456" maxlength="19"/>
+              ${pm==='visa'?`<div class="bg-[#1A1F71] text-white text-xs font-extrabold px-1.5 py-0.5 rounded tracking-wider flex-shrink-0">VISA</div>`:
+                `<div class="flex flex-shrink-0"><div class="w-4 h-4 bg-[#EB001B] rounded-full"></div><div class="w-4 h-4 bg-[#F79E1B] rounded-full -ml-1.5 opacity-90"></div></div>`}
+            </div>
+          </div>
+          <div class="flex gap-3">
+            <div class="flex-1">
+              <label class="text-xs font-medium text-gray-500 mb-1.5 block">Expiry date</label>
+              <input class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 placeholder-gray-300" placeholder="MM / YY" maxlength="7"/>
+            </div>
+            <div class="flex-1">
+              <label class="text-xs font-medium text-gray-500 mb-1.5 block">CVC</label>
+              <input class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 placeholder-gray-300" placeholder="123" maxlength="4"/>
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-gray-500 mb-1.5 block">Name on card</label>
+            <input class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 placeholder-gray-300" placeholder="e.g. Jane Smith"/>
+          </div>
+          <div class="flex items-center gap-2 text-xs text-gray-400">
+            <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+            Secured by <span class="font-semibold text-indigo-500">Stripe</span> — PCI DSS compliant
+          </div>
+        </div>` :
+        pm === 'paypal' ? `
+        <div class="mb-5">
+          <div class="bg-[#FFC439] rounded-xl py-3 px-4 flex items-center justify-center gap-2 cursor-pointer hover:bg-[#f0b429] transition-colors">
+            <span class="text-sm font-bold"><span class="text-[#003087]">Pay</span><span class="text-[#009cde]">Pal</span></span>
+            <span class="text-sm font-semibold text-[#003087]">Checkout</span>
+          </div>
+          <p class="text-xs text-gray-400 text-center mt-2">You'll complete payment securely on PayPal</p>
+        </div>` :
+        pm === 'crypto' ? `
+        <div class="mb-5">
+          ${APP.walletConnected
+            ? `<div class="bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex items-center gap-3">
+                <span class="w-2.5 h-2.5 bg-green-500 rounded-full flex-shrink-0"></span>
+                <div><p class="text-sm font-semibold text-green-800">Wallet connected</p><p class="text-xs text-green-600 font-mono">${APP.walletAddress}</p></div>
+                <button onclick="APP.walletConnected=false;APP.walletAddress=null;render()" class="ml-auto text-xs text-gray-400 hover:text-red-500">Disconnect</button>
+               </div>`
+            : `<button onclick="APP.showPaymentModal=true;render()"
+                class="w-full py-3 border-2 border-dashed border-gray-300 text-sm text-gray-500 rounded-xl hover:border-indigo-400 hover:text-indigo-600 transition-colors">
+                + Connect Wallet
+               </button>`}
+          <div class="flex gap-2 mt-3">
+            ${['BTC','ETH','SOL'].map(c=>`
+            <button onclick="APP.selectedCrypto='${c}';render()"
+              class="flex-1 py-2 rounded-lg border-2 text-xs font-semibold transition-all ${APP.selectedCrypto===c?'border-indigo-500 bg-indigo-50 text-indigo-700':'border-gray-200 text-gray-500 hover:border-gray-300'}">
+              ${CRYPTO_SYMBOLS[c]} ${c}
+            </button>`).join('')}
+          </div>
+        </div>` :
+        `<div class="mb-5 bg-indigo-50 border border-indigo-100 rounded-xl p-4 space-y-2">
+          <p class="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-2">Settlement OS Trust Account</p>
+          <div class="flex justify-between text-sm"><span class="text-gray-500">BSB</span><span class="font-mono font-bold text-gray-900">062-000</span></div>
+          <div class="flex justify-between text-sm"><span class="text-gray-500">Account</span><span class="font-mono font-bold text-gray-900">1234 5678</span></div>
+          <div class="flex justify-between text-sm"><span class="text-gray-500">Account Name</span><span class="font-semibold text-gray-900">Settlement OS Trust</span></div>
+          <div class="border-t border-indigo-200 pt-2 flex justify-between text-sm"><span class="text-gray-500">Reference</span><span class="font-mono font-bold text-indigo-700">PUR-${Date.now().toString(36).slice(-6).toUpperCase()}</span></div>
+        </div>`}
+
+        <!-- Fee Summary -->
+        <div class="bg-gray-50 rounded-xl p-4 space-y-2.5 mb-5">
+          <div class="flex justify-between text-sm"><span class="text-gray-500">Purchase price</span><span class="font-semibold text-gray-900">${fmtPrice(price)}</span></div>
+          <div class="flex justify-between text-sm"><span class="text-gray-500">Platform fee (2%)</span><span class="font-semibold text-rose-600">− ${fmtPrice(fee)}</span></div>
+          <div class="border-t border-gray-200 pt-2.5 flex justify-between text-sm"><span class="text-gray-700 font-medium">Net to seller</span><span class="font-bold text-gray-900">${fmtPrice(net)}</span></div>
+          <div class="flex justify-between text-sm"><span class="text-gray-500">Settlement type</span><span class="font-semibold text-indigo-600">Full property transfer</span></div>
+        </div>
+
+        <div class="flex gap-3">
+          <button onclick="APP.buyNowListingId=null;render()"
+            class="flex-1 py-2.5 border border-gray-200 text-gray-600 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-colors">
+            Cancel
+          </button>
+          <button onclick="confirmBuyNow()"
+            class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors">
+            ${confirmLabel[pm] || 'Confirm Purchase'}
+          </button>
+        </div>
+        <p class="text-center text-xs text-gray-400 mt-3">Our settlement team will contact you within 24 hours.</p>
+      </div>
+    </div>`;
+  return overlay;
+}
+
+function buildListingFormModal() {
+  const f = APP.listingFormData;
+  const states = ['NSW','VIC','QLD','WA','SA','TAS','ACT','NT','BALI'];
+  const types = ['House','Apartment','Townhouse','Villa','Land','Commercial'];
+  const overlay = el('div', 'fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm overflow-y-auto py-8');
+  overlay.onclick = (e) => { if (e.target === overlay) { APP.showListingForm = false; render(); } };
+  overlay.innerHTML = `
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 fade-in" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between p-6 border-b border-gray-100">
+        <div>
+          <h2 class="text-xl font-bold text-gray-900">List Your Property</h2>
+          <p class="text-xs text-gray-400 mt-0.5">Submitted listings are reviewed within 24 hours</p>
+        </div>
+        <button onclick="APP.showListingForm=false;render()" class="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+      </div>
+      <div class="p-6 space-y-6">
+
+        <div>
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Property Details</p>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="col-span-2">
+              <label class="block text-xs font-medium text-gray-600 mb-1">Street Address <span class="text-rose-500">*</span></label>
+              <input type="text" value="${f.address}" oninput="APP.listingFormData.address=this.value"
+                placeholder="e.g. 12 Campbell Parade"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Suburb <span class="text-rose-500">*</span></label>
+              <input type="text" value="${f.suburb}" oninput="APP.listingFormData.suburb=this.value"
+                placeholder="e.g. Bondi Beach"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Postcode <span class="text-rose-500">*</span></label>
+              <input type="text" value="${f.postcode}" oninput="APP.listingFormData.postcode=this.value"
+                placeholder="e.g. 2026"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">State / Region</label>
+              <select oninput="APP.listingFormData.state=this.value"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                ${states.map(s=>`<option value="${s}" ${f.state===s?'selected':''}>${s}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Property Type</label>
+              <select oninput="APP.listingFormData.type=this.value"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                ${types.map(t=>`<option value="${t}" ${f.type===t?'selected':''}>${t}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Specifications</p>
+          <div class="grid grid-cols-4 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Bedrooms</label>
+              <input type="number" min="1" max="20" value="${f.beds}" oninput="APP.listingFormData.beds=this.value"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Bathrooms</label>
+              <input type="number" min="1" max="20" value="${f.baths}" oninput="APP.listingFormData.baths=this.value"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Parking</label>
+              <input type="number" min="0" max="10" value="${f.parking}" oninput="APP.listingFormData.parking=this.value"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Land (m²)</label>
+              <input type="number" min="0" value="${f.landSize}" oninput="APP.listingFormData.landSize=this.value"
+                placeholder="Optional"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Pricing</p>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Asking Price (AUD) <span class="text-rose-500">*</span></label>
+            <input type="number" min="0" value="${f.price}" oninput="APP.listingFormData.price=this.value"
+              placeholder="e.g. 1500000"
+              class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Description</label>
+          <textarea rows="3" oninput="APP.listingFormData.description=this.value"
+            placeholder="Describe the property — location highlights, features, investment potential..."
+            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none">${f.description}</textarea>
+        </div>
+
+        <div>
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Sale Type</p>
+          <div class="grid grid-cols-3 gap-3">
+            ${[
+              { value:'invest', label:'Investment Pool', sub:'Raise capital from multiple investors', icon:'📊' },
+              { value:'buy_now', label:'Buy Now', sub:'Direct full property purchase', icon:'🏠' },
+              { value:'both', label:'Both', sub:'Offer investment and direct sale', icon:'✨' },
+            ].map(opt => `
+            <button onclick="APP.listingFormData.saleType='${opt.value}';render()" type="button"
+              class="p-4 rounded-xl border-2 text-left transition-all ${f.saleType===opt.value?'border-indigo-500 bg-indigo-50':'border-gray-200 hover:border-indigo-300'}">
+              <div class="text-xl mb-1">${opt.icon}</div>
+              <p class="text-sm font-semibold text-gray-800 ${f.saleType===opt.value?'text-indigo-700':''}">${opt.label}</p>
+              <p class="text-xs text-gray-400 mt-0.5">${opt.sub}</p>
+            </button>`).join('')}
+          </div>
+        </div>
+
+      </div>
+      <div class="flex gap-3 p-6 border-t border-gray-100">
+        <button onclick="APP.showListingForm=false;render()"
+          class="flex-1 py-2.5 border border-gray-200 text-gray-600 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-colors">
+          Cancel
+        </button>
+        <button onclick="submitNewListing()"
+          class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors">
+          Submit for Review
+        </button>
+      </div>
+    </div>`;
+  return overlay;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LISTINGS
+// ═══════════════════════════════════════════════════════════════════════════
+function buildListings() {
+  const types = ['all', ...new Set(MOCK_LISTINGS.map(l=>l.type))];
+  const regions = [
+    { value:'all', label:'All Regions' },
+    { value:'australia', label:'Australia' },
+    { value:'bali', label:'Bali' },
+  ];
+  let filtered = MOCK_LISTINGS.filter(l => {
+    const typeOk = APP.listingTypeFilter === 'all' || l.type === APP.listingTypeFilter;
+    const regionOk = APP.listingSuburbFilter === 'all'
+      || (APP.listingSuburbFilter === 'bali' && l.state === 'BALI')
+      || (APP.listingSuburbFilter === 'australia' && l.state !== 'BALI');
+    const liveOnly = l.status === 'LIVE';
+    return typeOk && regionOk && liveOnly;
+  });
+
+  const page = el('div', '');
+  const inner = el('div', 'p-8');
+  inner.innerHTML = `
+    <div class="flex items-start justify-between mb-6">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Property Listings</h1>
+        <p class="text-sm text-gray-400 mt-0.5">Browse properties and investments across Australia and Bali</p>
+      </div>
+      <div class="flex items-center gap-2">
+        ${APP.currentUser ? `<button onclick="APP.showListingForm=true;render()" class="inline-flex items-center gap-2 px-4 py-2 border border-indigo-300 text-indigo-600 text-sm font-medium rounded-lg hover:bg-indigo-50 transition-colors">+ List a Property</button>` : ''}
+        <button onclick="setView('invest')" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
+          View Investment Pools →
+        </button>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3 mb-7 flex-wrap">
+      <span class="text-sm font-medium text-gray-600">Filter:</span>
+      <div class="flex items-center gap-2 flex-wrap">
+        ${types.map(t => `
+          <button onclick="APP.listingTypeFilter='${t}';render()"
+            class="px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${APP.listingTypeFilter===t?'bg-indigo-600 text-white border-indigo-600':'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'}">
+            ${t === 'all' ? 'All Types' : t}
+          </button>`).join('')}
+      </div>
+      <div class="flex items-center gap-2">
+        ${regions.map(r => `
+          <button onclick="APP.listingSuburbFilter='${r.value}';render()"
+            class="px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${APP.listingSuburbFilter===r.value?'bg-indigo-600 text-white border-indigo-600':'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'}">
+            ${r.label}
+          </button>`).join('')}
+      </div>
+      <span class="ml-auto text-sm text-gray-400">${filtered.length} propert${filtered.length!==1?'ies':'y'}</span>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" id="listingGrid"></div>`;
+
+  page.appendChild(inner);
+
+  const grid = inner.querySelector('#listingGrid');
+  if (filtered.length === 0) {
+    grid.innerHTML = '<div class="col-span-3 text-center text-gray-400 py-20 text-sm">No listings match your filters.</div>';
+  }
+  filtered.forEach(listing => {
+    const pool = MOCK_POOLS.find(p => p.id === listing.poolId);
+    const pct = pool ? Math.round((pool.amountRaised / pool.targetRaise) * 100) : 0;
+    const card = el('div', 'bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group');
+    card.innerHTML = `
+      <div class="h-44 bg-gradient-to-br ${listing.color} flex items-center justify-center relative">
+        <span class="text-6xl">${listing.emoji}</span>
+        <div class="absolute top-3 left-3">
+          <span class="bg-white/90 backdrop-blur text-gray-700 text-xs font-semibold px-2.5 py-1 rounded-full">${listing.type}</span>
+        </div>
+        <div class="absolute top-3 right-3 flex flex-col items-end gap-1">
+          ${listing.saleType === 'buy_now'
+            ? '<span class="bg-indigo-600/90 text-white text-xs font-semibold px-2.5 py-1 rounded-full">Buy Now</span>'
+            : listing.saleType === 'both'
+              ? '<span class="bg-indigo-600/90 text-white text-xs font-semibold px-2.5 py-1 rounded-full">Buy Now</span><span class="bg-green-500/90 text-white text-xs font-semibold px-2.5 py-1 rounded-full">+ Invest</span>'
+              : pool?.status === 'FUNDED'
+                ? '<span class="bg-gray-900/80 text-white text-xs font-semibold px-2.5 py-1 rounded-full">Fully Funded</span>'
+                : '<span class="bg-green-500/90 text-white text-xs font-semibold px-2.5 py-1 rounded-full">Open for Investment</span>'}
+        </div>
+      </div>
+      <div class="p-5">
+        <p class="font-bold text-gray-900 text-base mb-0.5">${listing.address}</p>
+        <p class="text-sm text-gray-400 mb-3">${listing.suburb}${listing.state==='BALI'?' · Bali, Indonesia':' '+listing.state+' '+listing.postcode}</p>
+
+        ${APP.editingListingId === listing.id ? `
+        <div class="mb-4">
+          <textarea id="descEdit_${listing.id}" rows="4"
+            class="w-full border border-indigo-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+            oninput="APP.editingDescription=this.value">${listing.description}</textarea>
+          <div class="flex gap-2 mt-2">
+            <button onclick="saveDescription('${listing.id}')"
+              class="flex-1 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors">
+              Save
+            </button>
+            <button onclick="cancelEditDescription()"
+              class="flex-1 py-1.5 border border-gray-200 hover:bg-gray-50 text-gray-600 text-xs font-medium rounded-lg transition-colors">
+              Cancel
+            </button>
+          </div>
+        </div>` : `
+        <div class="mb-4 ${APP.currentUser?.name === listing.submittedBy || APP.currentUser?.role === 'ADMIN' ? 'group relative' : ''}">
+          <p class="text-sm text-gray-500 leading-relaxed pr-6">${listing.description || '<span class="italic text-gray-400">No description yet.</span>'}</p>
+          ${APP.currentUser?.name === listing.submittedBy || APP.currentUser?.role === 'ADMIN' ? `
+          <button onclick="startEditDescription('${listing.id}')" title="Edit description"
+            class="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-indigo-600">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z"/></svg>
+          </button>` : ''}
+        </div>`}
+
+        <div class="flex items-end justify-between mb-4">
+          <div>
+            <p class="text-2xl font-bold text-gray-900">${fmtPrice(listing.price)}</p>
+            <p class="text-xs text-gray-400">Purchase price</p>
+          </div>
+          <div class="text-right">
+            <p class="text-lg font-bold text-green-600">${listing.rentalYield}%</p>
+            <p class="text-xs text-gray-400">Rental yield</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-4 text-sm text-gray-500 mb-4">
+          <span>🛏 ${listing.beds}</span>
+          <span>🚿 ${listing.baths}</span>
+          <span>🚗 ${listing.parking}</span>
+          ${listing.landSize ? `<span>📐 ${listing.landSize}m²</span>` : ''}
+        </div>
+        ${(() => {
+          const isBuyNow = listing.saleType === 'buy_now' || listing.saleType === 'both';
+          const isInvest = !listing.saleType || listing.saleType === 'invest' || listing.saleType === 'both';
+          let html = '';
+          if (isInvest && pool) {
+            const isFunded = pool.status === 'FUNDED';
+            const myInvestment = APP.portfolio.find(p => p.poolId === pool.id);
+            const annualReturn = Math.round(pool.minInvestment * pool.expectedYield / 100);
+            html += `
+            <div class="bg-gray-50 rounded-xl p-3 mb-4">
+              <div class="flex justify-between text-xs text-gray-500 mb-1.5">
+                <span>Pool raised</span>
+                <span class="font-semibold text-gray-700">${pct}% · ${fmtPrice(pool.amountRaised)} of ${fmtPrice(pool.targetRaise)}</span>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-1.5">
+                <div class="h-1.5 rounded-full ${isFunded ? 'bg-gray-400' : 'bg-indigo-500'} progress-bar" style="width:${pct}%"></div>
+              </div>
+              <div class="flex justify-between text-xs mt-1.5">
+                <span class="text-gray-400">${pool.investorCount}/${pool.maxInvestors} investors</span>
+                <span class="font-semibold text-indigo-600">${pool.expectedYield}% p.a. target</span>
+              </div>
+            </div>
+            <div class="bg-amber-50 border border-amber-100 rounded-xl p-3 mb-4 flex items-center justify-between">
+              <div>
+                <p class="text-xs text-gray-500">Min $${pool.minInvestment.toLocaleString()} earns annually</p>
+                <p class="text-sm font-bold text-gray-800">A$${annualReturn.toLocaleString('en-AU')} / year</p>
+              </div>
+              <div class="text-right">
+                <p class="text-xs text-gray-400">${pool.payoutFrequency}</p>
+                <p class="text-xs font-medium text-gray-600">payouts</p>
+              </div>
+            </div>
+            ${myInvestment
+              ? `<div class="bg-green-50 border border-green-200 rounded-xl p-3 mb-3 text-sm flex items-center gap-2">
+                  <span class="text-green-600 font-bold">✓</span>
+                  <span class="text-green-700">Invested A$${myInvestment.amount.toLocaleString()} — payouts in ${myInvestment.crypto}</span>
+                 </div>`
+              : isFunded
+                ? `<button onclick="showToast('Join waitlist for ${pool.name} (mock)')"
+                    class="w-full py-2.5 border border-gray-200 text-gray-500 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors mb-3">
+                    Fully Funded — Join Waitlist
+                   </button>`
+                : `<div class="flex gap-2 mb-3">
+                    <input id="lamt_${pool.id}" type="number" min="${pool.minInvestment}" placeholder="Amount (AUD)"
+                      class="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      oninput="APP.investAmount=this.value"/>
+                    <button onclick="openCheckout('${pool.id}','lamt_${pool.id}')"
+                      class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors whitespace-nowrap">
+                      Invest
+                    </button>
+                   </div>
+                   <p class="text-xs text-gray-400 mb-3">Minimum investment A$${pool.minInvestment.toLocaleString()}</p>`}`;
+          }
+          if (isBuyNow) {
+            html += `<button onclick="buyNow('${listing.id}')"
+              class="w-full py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-lg transition-colors">
+              Buy Now — ${fmtPrice(listing.price)}
+            </button>`;
+          }
+          return html;
+        })()}
+      </div>`;
+    grid.appendChild(card);
+  });
+  return page;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INVEST
+// ═══════════════════════════════════════════════════════════════════════════
+function buildInvest() {
+  const page = el('div', '');
+  const inner = el('div', 'p-8');
+  const walletBar = APP.walletConnected
+    ? `<div class="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-2.5 text-sm">
+        <span class="w-2 h-2 bg-green-500 rounded-full pulse-dot"></span>
+        <span class="text-green-700 font-medium">Wallet connected</span>
+        <span class="text-green-600 font-mono text-xs">${APP.walletAddress}</span>
+        <button onclick="APP.walletConnected=false;APP.walletAddress=null;render()" class="ml-auto text-xs text-gray-400 hover:text-gray-600">Disconnect</button>
+       </div>`
+    : `<button onclick="APP.showPaymentModal=true;render()" class="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors">
+        💳 Payment
+       </button>`;
+
+  inner.innerHTML = `
+    <div class="flex items-start justify-between mb-2">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Investment Pools</h1>
+        <p class="text-sm text-gray-400 mt-0.5">Pool funds with other investors across Australian &amp; Bali properties</p>
+      </div>
+      <div>${walletBar}</div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6" id="poolGrid">
+    </div>`;
+
+  page.appendChild(inner);
+
+  const grid = inner.querySelector('#poolGrid');
+  MOCK_POOLS.forEach(pool => {
+    const listing = MOCK_LISTINGS.find(l => l.id === pool.listingId);
+    const pct = Math.round((pool.amountRaised / pool.targetRaise) * 100);
+    const annualReturn = (pool.minInvestment * pool.expectedYield / 100);
+    const isFunded = pool.status === 'FUNDED';
+    const myInvestment = APP.portfolio.find(p => p.poolId === pool.id);
+
+    const card = el('div', `bg-white border rounded-2xl overflow-hidden transition-shadow ${isFunded ? 'border-gray-200 opacity-80' : 'border-gray-200 hover:shadow-md'}`);
+    card.innerHTML = `
+      <div class="h-3 bg-gradient-to-r ${listing?.color || 'from-gray-400 to-gray-600'}"></div>
+      <div class="p-6">
+        <div class="flex items-start justify-between mb-3">
+          <div>
+            <h3 class="font-bold text-gray-900">${pool.name}</h3>
+            <p class="text-sm text-gray-400 mt-0.5">${listing?.suburb || ''} · ${listing?.type || ''}</p>
+          </div>
+          <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${isFunded ? 'bg-gray-100 text-gray-600' : 'bg-green-100 text-green-700'}">
+            ${isFunded ? 'Fully Funded' : 'Open'}
+          </span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 mb-4">
+          <div class="bg-indigo-50 rounded-xl p-3 text-center">
+            <p class="text-lg font-bold text-indigo-700">${pool.expectedYield}%</p>
+            <p class="text-xs text-gray-500">Target p.a.</p>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-3 text-center">
+            <p class="text-lg font-bold text-gray-800">${pool.term} yr</p>
+            <p class="text-xs text-gray-500">Term</p>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <div class="flex justify-between text-xs text-gray-500 mb-1.5">
+            <span>Capital raised</span>
+            <span class="font-semibold">${pct}%</span>
+          </div>
+          <div class="w-full bg-gray-100 rounded-full h-2">
+            <div class="h-2 rounded-full ${isFunded ? 'bg-gray-400' : 'bg-indigo-500'} progress-bar" style="width:${pct}%"></div>
+          </div>
+          <div class="flex justify-between text-xs mt-1.5 text-gray-400">
+            <span>${fmtPrice(pool.amountRaised)} raised of ${fmtPrice(pool.targetRaise)}</span>
+            <span>${pool.investorCount}/${pool.maxInvestors} investors</span>
+          </div>
+        </div>
+
+        <div class="bg-amber-50 border border-amber-100 rounded-xl p-3 mb-4 flex items-center justify-between">
+          <div>
+            <p class="text-xs text-gray-500">Min $${pool.minInvestment.toLocaleString()} earns annually</p>
+            <p class="text-sm font-bold text-gray-800">A$${Math.round(annualReturn).toLocaleString('en-AU')} / year</p>
+          </div>
+          <div class="text-right">
+            <p class="text-xs text-gray-400">${pool.payoutFrequency}</p>
+            <p class="text-xs font-medium text-gray-600">payouts</p>
+          </div>
+        </div>
+
+        ${myInvestment ? `
+          <div class="bg-green-50 border border-green-200 rounded-xl p-3 mb-3 text-sm flex items-center gap-2">
+            <span class="text-green-600 font-bold">✓</span>
+            <span class="text-green-700">Invested A$${myInvestment.amount.toLocaleString()} — payouts in ${myInvestment.crypto}</span>
+          </div>` : ''}
+
+        ${!isFunded && !myInvestment ? `
+          <div class="flex gap-2">
+            <input id="amt_${pool.id}" type="number" min="${pool.minInvestment}" placeholder="Amount (AUD)"
+              class="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              oninput="APP.investAmount=this.value" value="${APP.investPoolId===pool.id?APP.investAmount:''}"/>
+            <button onclick="openCheckout('${pool.id}','amt_${pool.id}')"
+              class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors whitespace-nowrap">
+              Invest
+            </button>
+          </div>
+          <p class="text-xs text-gray-400 mt-1.5">Minimum investment A$${pool.minInvestment.toLocaleString()}</p>` : ''}
+
+        ${isFunded && !myInvestment ? `
+          <button onclick="showToast('Join waitlist for ${pool.name} (mock)')"
+            class="w-full py-2.5 border border-gray-200 text-gray-500 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
+            Join Waitlist
+          </button>` : ''}
+      </div>`;
+    grid.appendChild(card);
+  });
+  return page;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ADMIN PANEL
+// ═══════════════════════════════════════════════════════════════════════════
+function adminSetStatus(listingId, status) {
+  const listing = MOCK_LISTINGS.find(l => l.id === listingId);
+  if (!listing) return;
+  listing.status = status;
+  const labels = { LIVE:'approved', PAUSED:'paused for review', REJECTED:'rejected' };
+  showToast(`"${listing.address.split(',')[0]}" ${labels[status] || status}`);
+}
+
+function adminSendMessage(listingId) {
+  const text = APP.adminMessageText.trim();
+  if (!text) return;
+  const listing = MOCK_LISTINGS.find(l => l.id === listingId);
+  if (!listing) return;
+  listing.adminNotes.push({ from:'Admin', text, time:'Just now', fromAdmin:true });
+  APP.adminMessageListingId = null;
+  APP.adminMessageText = '';
+  showToast('Message sent to seller');
+}
+
+function buildAdmin() {
+  const statusFilters = [
+    { value:'all', label:'All' },
+    { value:'PENDING', label:'Pending' },
+    { value:'LIVE', label:'Live' },
+    { value:'PAUSED', label:'Paused' },
+    { value:'REJECTED', label:'Rejected' },
+  ];
+
+  const statusBadgeAdmin = (s) => {
+    const map = {
+      LIVE:     'bg-green-100 text-green-700',
+      PENDING:  'bg-amber-100 text-amber-700',
+      PAUSED:   'bg-blue-100 text-blue-700',
+      REJECTED: 'bg-red-100 text-red-700',
+    };
+    return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${map[s]||'bg-gray-100 text-gray-600'}">${s}</span>`;
+  };
+
+  const filtered = APP.adminListingFilter === 'all'
+    ? MOCK_LISTINGS
+    : MOCK_LISTINGS.filter(l => l.status === APP.adminListingFilter);
+
+  const pending = MOCK_LISTINGS.filter(l => l.status === 'PENDING').length;
+
+  const totalFeesAUD   = APP.platformFees.reduce((s,f) => s + f.feeAUD, 0);
+  const totalFeesByC   = { BTC:0, ETH:0, SOL:0 };
+  APP.platformFees.forEach(f => { totalFeesByC[f.crypto] = parseFloat(((totalFeesByC[f.crypto]||0) + f.feeCrypto).toFixed(8)); });
+
+  const page = el('div', 'p-8');
+  page.innerHTML = `
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Admin Panel</h1>
+        <p class="text-sm text-gray-400 mt-0.5">Review, approve and manage property listings</p>
+      </div>
+      ${pending > 0 ? `<div class="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2">
+        <span class="w-2 h-2 bg-amber-500 rounded-full pulse-dot"></span>
+        <span class="text-sm font-medium text-amber-700">${pending} listing${pending!==1?'s':''} awaiting review</span>
+      </div>` : ''}
+    </div>
+
+    <!-- Stats row -->
+    <div class="grid grid-cols-4 gap-4 mb-6">
+      ${['LIVE','PENDING','PAUSED','REJECTED'].map(s => {
+        const count = MOCK_LISTINGS.filter(l=>l.status===s).length;
+        const cfg = { LIVE:['bg-green-50 border-green-100','text-green-700'], PENDING:['bg-amber-50 border-amber-100','text-amber-700'], PAUSED:['bg-blue-50 border-blue-100','text-blue-700'], REJECTED:['bg-red-50 border-red-100','text-red-700'] };
+        return `<div class="border rounded-xl p-4 ${cfg[s][0]}"><p class="text-2xl font-bold ${cfg[s][1]}">${count}</p><p class="text-xs mt-0.5 ${cfg[s][1]} opacity-70">${s}</p></div>`;
+      }).join('')}
+    </div>
+
+    <!-- Platform Revenue -->
+    <div class="bg-white border border-gray-200 rounded-2xl p-5 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="font-semibold text-gray-900">Platform Revenue (2% fee)</h2>
+          <p class="text-xs text-gray-400 mt-0.5">Collected on all completed investment transactions</p>
+        </div>
+        <span class="text-2xl font-bold text-indigo-600">A$${totalFeesAUD.toLocaleString('en-AU',{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
+      </div>
+      <div class="grid grid-cols-3 gap-3 mb-4">
+        ${['BTC','ETH','SOL'].map(c => `
+          <div class="bg-gray-50 rounded-xl p-3">
+            <p class="text-xs text-gray-400 mb-1">${c} owner wallet</p>
+            <p class="font-bold text-gray-900 text-sm ${CRYPTO_COLORS[c]}">${CRYPTO_SYMBOLS[c]} ${APP.ownerWalletBalance[c].toFixed(c==='BTC'?6:c==='ETH'?4:2)}</p>
+            <p class="text-[10px] text-gray-400 mt-1 font-mono truncate">${OWNER_WALLETS[c]}</p>
+          </div>`).join('')}
+      </div>
+      <div class="border-t border-gray-100 pt-3">
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">AUD Settlement Account</p>
+        <p class="text-sm font-mono text-gray-600">${OWNER_WALLETS.AUD}</p>
+      </div>
+      ${APP.platformFees.length > 0 ? `
+      <div class="border-t border-gray-100 mt-3 pt-3">
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Recent Transactions</p>
+        <div class="space-y-1.5 max-h-40 overflow-y-auto">
+          ${APP.platformFees.slice().reverse().map(f => `
+            <div class="flex items-center justify-between text-xs text-gray-600 py-1 border-b border-gray-50 last:border-0">
+              <span class="truncate mr-3">${f.poolName}</span>
+              <span class="flex-shrink-0 font-mono text-gray-400">${f.date}</span>
+              <span class="flex-shrink-0 font-semibold text-indigo-600 ml-3">A$${f.feeAUD.toLocaleString()} <span class="text-gray-400 font-normal">(${CRYPTO_SYMBOLS[f.crypto]}${f.feeCrypto})</span></span>
+            </div>`).join('')}
+        </div>
+      </div>` : '<p class="text-xs text-gray-400 mt-3 pt-3 border-t border-gray-100">No transactions yet — fees will appear here after investments are made.</p>'}
+    </div>
+
+    <!-- Filter tabs -->
+    <div class="flex items-center gap-2 mb-5 flex-wrap">
+      ${statusFilters.map(f => `
+        <button onclick="APP.adminListingFilter='${f.value}';render()"
+          class="px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${APP.adminListingFilter===f.value?'bg-indigo-600 text-white border-indigo-600':'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'}">
+          ${f.label}${f.value!=='all'?' ('+MOCK_LISTINGS.filter(l=>l.status===f.value).length+')':''}
+        </button>`).join('')}
+    </div>
+
+    <div class="space-y-4" id="adminCards"></div>
+    ${filtered.length===0?'<p class="text-sm text-gray-400 text-center py-12">No listings match this filter.</p>':''}`;
+
+  const cards = page.querySelector('#adminCards');
+  filtered.forEach(listing => {
+    const card = el('div', 'bg-white border border-gray-200 rounded-2xl overflow-hidden');
+
+    const isMessaging = APP.adminMessageListingId === listing.id;
+
+    card.innerHTML = `
+      <!-- Header -->
+      <div class="flex items-start justify-between p-5 pb-4">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br ${listing.color} flex items-center justify-center text-2xl flex-shrink-0">${listing.emoji}</div>
+          <div>
+            <div class="flex items-center gap-2 mb-0.5">
+              <p class="font-semibold text-gray-900">${listing.address}</p>
+              ${statusBadgeAdmin(listing.status)}
+            </div>
+            <p class="text-sm text-gray-400">${listing.suburb}${listing.state==='BALI'?' · Bali, Indonesia':' '+listing.state+' '+listing.postcode} · ${listing.type} · ${fmtPrice(listing.price)}</p>
+            <p class="text-xs text-gray-400 mt-0.5">Submitted by <span class="font-medium text-gray-600">${listing.submittedBy}</span> · Ref: ${listing.listingRef}</p>
+          </div>
+        </div>
+        <!-- Action buttons -->
+        <div class="flex items-center gap-2 flex-shrink-0">
+          ${listing.status !== 'LIVE' ? `
+            <button onclick="adminSetStatus('${listing.id}','LIVE')"
+              class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-lg transition-colors">
+              Approve
+            </button>` : ''}
+          ${listing.status !== 'PAUSED' ? `
+            <button onclick="adminSetStatus('${listing.id}','PAUSED')"
+              class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors">
+              Pause
+            </button>` : ''}
+          ${listing.status !== 'REJECTED' ? `
+            <button onclick="if(confirm('Reject this listing?'))adminSetStatus('${listing.id}','REJECTED')"
+              class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg transition-colors">
+              Reject
+            </button>` : ''}
+          <button onclick="APP.adminMessageListingId=APP.adminMessageListingId==='${listing.id}'?null:'${listing.id}';APP.adminMessageText='';render()"
+            class="px-3 py-1.5 border border-indigo-300 text-indigo-600 hover:bg-indigo-50 text-xs font-semibold rounded-lg transition-colors">
+            ${isMessaging ? 'Cancel' : '✉ Message Seller'}
+          </button>
+        </div>
+      </div>
+
+      <!-- Message thread (if any notes) -->
+      ${listing.adminNotes.length > 0 ? `
+      <div class="mx-5 mb-4 border border-gray-100 rounded-xl overflow-hidden">
+        <div class="bg-gray-50 px-4 py-2 border-b border-gray-100">
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Messages with ${listing.submittedBy}</p>
+        </div>
+        <div class="p-4 space-y-3 max-h-48 overflow-y-auto">
+          ${listing.adminNotes.map(n => `
+            <div class="flex ${n.fromAdmin ? 'justify-end' : 'justify-start'}">
+              <div class="max-w-[75%]">
+                <p class="text-[10px] text-gray-400 mb-0.5 ${n.fromAdmin ? 'text-right' : ''}">${n.from} · ${n.time}</p>
+                <div class="px-3 py-2 rounded-xl text-sm ${n.fromAdmin ? 'bg-indigo-600 text-white rounded-br-sm' : 'bg-gray-100 text-gray-800 rounded-bl-sm'}">${n.text}</div>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>` : ''}
+
+      <!-- Message composer -->
+      ${isMessaging ? `
+      <div class="mx-5 mb-5 p-4 bg-indigo-50 border border-indigo-100 rounded-xl">
+        <p class="text-xs font-semibold text-gray-600 mb-2">Message to ${listing.submittedBy}</p>
+        <textarea id="adminMsg_${listing.id}" rows="3"
+          class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none bg-white"
+          placeholder="Type your message to the seller..."
+          oninput="APP.adminMessageText=this.value">${APP.adminMessageText}</textarea>
+        <div class="flex justify-end mt-2">
+          <button onclick="APP.adminMessageText=document.getElementById('adminMsg_${listing.id}').value;adminSendMessage('${listing.id}')"
+            class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors">
+            Send Message
+          </button>
+        </div>
+      </div>` : ''}`;
+
+    cards.appendChild(card);
+  });
+
+  // ── Stripe / Payment Integration ─────────────────────────────────────────
+  const integrationSection = el('div', 'mt-8');
+  integrationSection.innerHTML = `
+    <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+      <button onclick="this.nextElementSibling.classList.toggle('hidden')"
+        class="w-full flex items-center justify-between p-5 text-left hover:bg-gray-50 transition-colors">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-600 text-sm font-bold">S</div>
+          <div>
+            <p class="font-semibold text-gray-900">Payment Integration — Stripe Backend</p>
+            <p class="text-xs text-gray-400 mt-0.5">Node.js · Express · Stripe SDK · PayPal SDK</p>
+          </div>
+        </div>
+        <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+      </button>
+      <div class="hidden border-t border-gray-100">
+        <div class="p-5">
+          <p class="text-xs text-gray-500 mb-4">Production-ready Node.js server for handling card payments (Stripe), PayPal orders, and bank transfer reconciliation. Deploy with <code class="bg-gray-100 px-1 rounded">STRIPE_SECRET_KEY</code> and <code class="bg-gray-100 px-1 rounded">STRIPE_WEBHOOK_SECRET</code> environment variables.</p>
+          <pre class="bg-gray-900 text-gray-100 rounded-xl p-5 text-xs overflow-x-auto leading-relaxed font-mono whitespace-pre">${`// server.js — Settlement OS Payment Server
+// npm install express stripe cors @paypal/checkout-server-sdk dotenv
+
+require('dotenv').config();
+const express = require('express');
+const stripe  = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const cors    = require('cors');
+const app     = express();
+
+app.use(cors({ origin: process.env.CLIENT_URL || '*' }));
+app.use('/api/webhook', express.raw({ type: 'application/json' }));
+app.use(express.json());
+
+// ── Create Stripe Payment Intent ─────────────────────────────────────────
+// Called when buyer selects Visa / Mastercard in the checkout modal
+app.post('/api/payment-intent', async (req, res) => {
+  const { amountAUD, metadata } = req.body;           // amountAUD in dollars
+  const amountCents = Math.round(amountAUD * 100);    // Stripe uses smallest unit
+
+  const platformFeeCents = Math.round(amountCents * 0.02); // 2% platform fee
+
+  try {
+    const intent = await stripe.paymentIntents.create({
+      amount:   amountCents,
+      currency: 'aud',
+      payment_method_types: ['card'],
+      application_fee_amount: platformFeeCents,       // routes to platform account
+      metadata: {
+        type:       metadata.type,    // 'investment' | 'purchase'
+        listingId:  metadata.listingId,
+        poolId:     metadata.poolId  || '',
+        buyerEmail: metadata.buyerEmail,
+        platformFeeAUD: (platformFeeCents / 100).toFixed(2),
+        referenceId: 'SOS-' + Date.now().toString(36).toUpperCase(),
+      },
+    });
+    res.json({ clientSecret: intent.client_secret });
+  } catch (err) {
+    console.error('PaymentIntent error:', err);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// ── Stripe Webhook ───────────────────────────────────────────────────────
+// Register endpoint: stripe listen --forward-to localhost:3000/api/webhook
+app.post('/api/webhook', (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(
+      req.body, sig, process.env.STRIPE_WEBHOOK_SECRET
+    );
+  } catch (err) {
+    return res.status(400).send('Webhook signature error: ' + err.message);
+  }
+
+  switch (event.type) {
+    case 'payment_intent.succeeded': {
+      const pi  = event.data.object;
+      const fee = parseFloat(pi.metadata.platformFeeAUD);
+      console.log('[Payment OK]', pi.id, '| fee: AUD', fee, '| ref:', pi.metadata.referenceId);
+      // TODO: update DB → mark pool contribution, trigger settlement workflow
+      break;
+    }
+    case 'payment_intent.payment_failed':
+      console.warn('[Payment FAILED]', event.data.object.id);
+      // TODO: notify buyer, release held funds
+      break;
+    case 'charge.dispute.created':
+      console.warn('[Dispute]', event.data.object.id);
+      // TODO: gather evidence, pause related listing
+      break;
+  }
+  res.json({ received: true });
+});
+
+// ── PayPal Order ─────────────────────────────────────────────────────────
+// npm install @paypal/checkout-server-sdk
+const paypal = require('@paypal/checkout-server-sdk');
+const paypalEnv = new paypal.core.SandboxEnvironment(
+  process.env.PAYPAL_CLIENT_ID,
+  process.env.PAYPAL_CLIENT_SECRET
+);
+const paypalClient = new paypal.core.PayPalHttpClient(paypalEnv);
+
+app.post('/api/paypal/create-order', async (req, res) => {
+  const { amountAUD, metadata } = req.body;
+  const feeAUD = (amountAUD * 0.02).toFixed(2);
+
+  const request = new paypal.orders.OrdersCreateRequest();
+  request.requestBody({
+    intent: 'CAPTURE',
+    purchase_units: [{
+      amount:      { currency_code: 'AUD', value: String(amountAUD) },
+      description: \`Settlement OS — \${metadata.type === 'purchase' ? 'Property Purchase' : 'Investment'}\`,
+      custom_id:   metadata.listingId,
+    }],
+    application_context: {
+      return_url: process.env.CLIENT_URL + '/payment/success',
+      cancel_url: process.env.CLIENT_URL + '/payment/cancel',
+    },
+  });
+  const order = await paypalClient.execute(request);
+  res.json({ orderID: order.result.id });
+});
+
+app.post('/api/paypal/capture-order', async (req, res) => {
+  const request = new paypal.orders.OrdersCaptureRequest(req.body.orderID);
+  const capture = await paypalClient.execute(request);
+  const feeAUD = (parseFloat(capture.result.purchase_units[0].amount.value) * 0.02).toFixed(2);
+  console.log('[PayPal OK]', capture.result.id, '| fee: AUD', feeAUD);
+  // TODO: update DB, trigger settlement workflow
+  res.json({ status: capture.result.status });
+});
+
+// ── Direct Deposit Reconciliation ────────────────────────────────────────
+// Triggered by bank webhook (e.g. Monoova, Zepto, or manual CSV import)
+app.post('/api/bank/reconcile', async (req, res) => {
+  const { bsb, account, reference, amountAUD, depositedAt } = req.body;
+  if (bsb !== '062-000' || account !== '12345678') {
+    return res.status(400).json({ error: 'Unknown destination account' });
+  }
+  // Match reference to pending transaction in DB
+  const feeAUD = (amountAUD * 0.02).toFixed(2);
+  console.log('[Bank Transfer]', reference, '| AUD', amountAUD, '| fee: AUD', feeAUD);
+  // TODO: mark payment received, proceed to settlement workflow
+  res.json({ matched: true, reference });
+});
+
+app.listen(process.env.PORT || 3000, () =>
+  console.log('Settlement OS payment server running on :', process.env.PORT || 3000)
+);`.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+          <div class="flex items-center gap-3 mt-4">
+            <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-lg text-xs text-gray-600 font-mono">STRIPE_SECRET_KEY=sk_live_...</div>
+            <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-lg text-xs text-gray-600 font-mono">STRIPE_WEBHOOK_SECRET=whsec_...</div>
+            <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-lg text-xs text-gray-600 font-mono">PAYPAL_CLIENT_ID=...</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  page.appendChild(integrationSection);
+
+  return page;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PORTFOLIO
+// ═══════════════════════════════════════════════════════════════════════════
+function buildPortfolio() {
+  const page = el('div', '');
+  page.appendChild(buildCryptoTicker());
+
+  const totalAUD = APP.portfolio.reduce((s, p) => s + p.amount, 0);
+  const totalReturn = APP.portfolio.reduce((s, p) => s + (p.amount * p.expectedYield / 100), 0);
+
+  const inner = el('div', 'p-8');
+  inner.innerHTML = `
+    <div class="flex items-start justify-between mb-8">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">My Portfolio</h1>
+        <p class="text-sm text-gray-400 mt-0.5">Your fractional property investments and projected returns</p>
+      </div>
+      ${APP.walletConnected
+        ? `<div class="flex items-center gap-2 bg-gray-100 rounded-xl px-4 py-2 text-sm">
+            <span class="w-2 h-2 bg-green-500 rounded-full pulse-dot"></span>
+            <span class="font-mono text-gray-600 text-xs">${APP.walletAddress}</span>
+           </div>`
+        : `<button onclick="APP.showPaymentModal=true;render()" class="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors">💳 Payment</button>`}
+    </div>
+
+    ${APP.portfolio.length === 0 ? `
+      <div class="bg-white border border-dashed border-gray-300 rounded-2xl p-16 text-center">
+        <div class="text-5xl mb-4">📊</div>
+        <p class="text-gray-500 font-medium mb-2">No investments yet</p>
+        <p class="text-sm text-gray-400 mb-6">Browse listings and invest in a property pool to get started</p>
+        <button onclick="setView('listings')" class="px-5 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">Browse Listings</button>
+      </div>` : `
+
+    <div class="grid grid-cols-3 gap-4 mb-8">
+      <div class="bg-indigo-600 text-white rounded-2xl p-5">
+        <p class="text-sm text-indigo-200 mb-1">Total Invested</p>
+        <p class="text-3xl font-bold">$${totalAUD.toLocaleString('en-AU')}</p>
+        <p class="text-xs text-indigo-300 mt-1">AUD</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-2xl p-5">
+        <p class="text-sm text-gray-500 mb-1">Projected Annual Return</p>
+        <p class="text-3xl font-bold text-green-600">$${Math.round(totalReturn).toLocaleString('en-AU')}</p>
+        <p class="text-xs text-gray-400 mt-1">AUD per year</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-2xl p-5">
+        <p class="text-sm text-gray-500 mb-1">Crypto equivalent</p>
+        <p class="text-2xl font-bold ${CRYPTO_COLORS[APP.selectedCrypto]}">${CRYPTO_SYMBOLS[APP.selectedCrypto]} ${cryptoEquiv(totalReturn, APP.selectedCrypto)}</p>
+        <p class="text-xs text-gray-400 mt-1">${APP.selectedCrypto} at A$${CRYPTO_PRICES[APP.selectedCrypto].toLocaleString()}</p>
+      </div>
+    </div>
+
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Holdings</h2>
+    <div class="space-y-3" id="holdingsGrid"></div>`}`;
+
+  page.appendChild(inner);
+
+  if (APP.portfolio.length > 0) {
+    const grid = inner.querySelector('#holdingsGrid');
+    APP.portfolio.forEach(inv => {
+      const pool = MOCK_POOLS.find(p => p.id === inv.poolId);
+      const listing = pool ? MOCK_LISTINGS.find(l => l.id === pool.listingId) : null;
+      const annualReturn = inv.amount * inv.expectedYield / 100;
+      const cryptoRet = cryptoEquiv(annualReturn, inv.crypto);
+      const row = el('div', 'bg-white border border-gray-200 rounded-xl p-5 flex items-center gap-5');
+      row.innerHTML = `
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-br ${listing?.color || 'from-gray-400 to-gray-600'} flex items-center justify-center text-2xl flex-shrink-0">${listing?.emoji || '🏠'}</div>
+        <div class="flex-1 min-w-0">
+          <p class="font-semibold text-gray-900">${inv.poolName}</p>
+          <p class="text-sm text-gray-400">${listing?.suburb || ''} · Invested ${inv.date}</p>
+        </div>
+        <div class="text-right">
+          <p class="font-bold text-gray-900">$${inv.amount.toLocaleString('en-AU')}</p>
+          <p class="text-xs text-gray-400">invested</p>
+        </div>
+        <div class="text-right">
+          <p class="font-bold text-green-600">${inv.expectedYield}% p.a.</p>
+          <p class="text-xs text-gray-400">$${annualReturn.toFixed(0)}/yr</p>
+        </div>
+        <div class="text-right min-w-[100px]">
+          <p class="font-bold ${CRYPTO_COLORS[inv.crypto]}">${CRYPTO_SYMBOLS[inv.crypto]} ${cryptoRet}</p>
+          <p class="text-xs text-gray-400">${inv.crypto} / year</p>
+        </div>
+        <div>
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
+            <span class="w-1.5 h-1.5 bg-green-500 rounded-full pulse-dot"></span>Active
+          </span>
+        </div>`;
+      grid.appendChild(row);
+    });
+
+    const note = el('p', 'text-xs text-gray-400 mt-4 text-center');
+    note.textContent = 'Returns are projected estimates only. Crypto conversion rates update in real time. Past performance does not guarantee future returns.';
+    inner.appendChild(note);
+  }
+  return page;
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>

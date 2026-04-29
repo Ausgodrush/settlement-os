@@ -43,27 +43,28 @@ apt install -y docker-compose-plugin
 echo "   Docker $(docker --version) installed"
 echo "   Docker Compose $(docker compose version) installed"
 
-# ── 4. Nginx ─────────────────────────────────────────────────────────────────
-echo "▶ Installing Nginx..."
-apt install -y nginx
-systemctl enable nginx
-systemctl start nginx
-
-# ── 5. Certbot + SSL ─────────────────────────────────────────────────────────
+# ── 4. Certbot (webroot mode — no system Nginx needed) ───────────────────────
 echo "▶ Installing Certbot..."
-apt install -y certbot python3-certbot-nginx
+apt install -y certbot
+
+# Stop and disable system Nginx if it's running — Docker Nginx owns port 80
+systemctl stop nginx 2>/dev/null || true
+systemctl disable nginx 2>/dev/null || true
+
+# Create webroot directory for ACME challenge
+mkdir -p /var/www/certbot
 
 echo "▶ Obtaining SSL certificate for $DOMAIN and $WWW_DOMAIN..."
-certbot --nginx \
+# Start a temporary standalone HTTP server on port 80 for the initial challenge
+certbot certonly \
+  --standalone \
   --non-interactive \
   --agree-tos \
   --email "$EMAIL" \
   -d "$DOMAIN" \
   -d "$WWW_DOMAIN"
 
-# Auto-renewal cron
-(crontab -l 2>/dev/null; echo "0 3 * * * certbot renew --quiet") | crontab -
-echo "   SSL certificate issued and auto-renewal scheduled"
+echo "   SSL certificate issued — auto-renewal handled by certbot Docker container"
 
 # ── 6. Portainer ─────────────────────────────────────────────────────────────
 echo "▶ Installing Portainer..."

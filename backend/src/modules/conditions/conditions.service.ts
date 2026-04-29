@@ -87,7 +87,7 @@ export class ConditionsService {
       }
       condition.status = ConditionStatus.WAIVED;
       condition.waivedBy = user;
-      condition.waivedReason = dto.waivedReason;
+      if (dto.waivedReason) condition.waivedReason = dto.waivedReason;
     }
 
     condition.evaluatedAt = new Date();

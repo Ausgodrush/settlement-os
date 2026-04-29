@@ -32,13 +32,13 @@ export class DocumentsService {
     private readonly gateway: WebsocketsGateway,
   ) {
     this.s3 = new S3Client({
-      region: config.get('AWS_REGION', 'ap-southeast-2'),
+      region: config.get<string>('AWS_REGION') ?? 'ap-southeast-2',
       credentials: config.get('NODE_ENV') !== 'development' ? {
-        accessKeyId: config.get('AWS_ACCESS_KEY_ID'),
-        secretAccessKey: config.get('AWS_SECRET_ACCESS_KEY'),
+        accessKeyId: config.get<string>('AWS_ACCESS_KEY_ID') as string,
+        secretAccessKey: config.get<string>('AWS_SECRET_ACCESS_KEY') as string,
       } : undefined,
     });
-    this.bucket = config.get('S3_BUCKET_NAME', 'settlement-os-documents');
+    this.bucket = config.get<string>('S3_BUCKET_NAME') ?? 'settlement-os-documents';
   }
 
   async upload(

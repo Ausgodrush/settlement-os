@@ -93,13 +93,24 @@ echo "     Run: nano $APP_DIR/backend/.env"
 echo "     Fill in: DB_PASSWORD, JWT_SECRET, AWS keys, Stripe keys, etc."
 echo ""
 
-# ── 9. Build and start ───────────────────────────────────────────────────────
+# ── 9. Get SSL cert BEFORE starting Docker (port 80 must be free) ────────────
+echo "▶ Obtaining SSL certificate (standalone — port 80 must be free)..."
+certbot certonly \
+  --standalone \
+  --non-interactive \
+  --agree-tos \
+  --email "$EMAIL" \
+  -d "$DOMAIN" \
+  -d "$WWW_DOMAIN"
+echo "   SSL certificate issued"
+
+# ── 10. Build and start ──────────────────────────────────────────────────────
 echo "▶ Building and starting containers (this takes a few minutes)..."
 cd "$APP_DIR/infrastructure"
 docker compose build --no-cache
 docker compose up -d
 
-# ── 10. Done ─────────────────────────────────────────────────────────────────
+# ── 11. Done ─────────────────────────────────────────────────────────────────
 echo ""
 echo "╔══════════════════════════════════════════════════════════╗"
 echo "║  ✅  Setup complete!                                     ║"

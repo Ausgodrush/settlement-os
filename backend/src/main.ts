@@ -23,7 +23,7 @@ async function bootstrap() {
   app.use(compression());
 
   app.enableCors({
-    origin: [frontendUrl, /\.settlement-os\.com\.au$/],
+    origin: [frontendUrl, 'https://settlementos.com.au', 'https://www.settlementos.com.au'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });

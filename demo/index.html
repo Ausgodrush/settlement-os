@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Settlement OS by BALIPROP LLC — coordinate property settlements and co-invest in Australian and Bali real estate through fractional investment pools.">
+<meta name="theme-color" content="#4f46e5">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Settlement OS — Property Settlement & Investment Platform">
+<meta property="og:description" content="Coordinate property settlements and co-invest in Australian and Bali real estate through fractional investment pools.">
+<meta property="og:image" content="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1200&h=630&fit=crop&q=80">
 <title>Settlement OS — Property Settlement & Investment Platform</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://js.stripe.com/v3/"></script>
@@ -35,12 +41,12 @@ tailwind.config = {
 ════════════════════════════════════════════════════════════════════════════ -->
 <script>
 const MOCK_USERS = [
-  { id:'u1', name:'Jane Cooper', role:'BUYER_CONVEYANCER', firm:'Cooper Legal' },
-  { id:'u2', name:'Michael Torres', role:'BUYER', firm:null },
-  { id:'u3', name:'Sarah Chen', role:'SELLER', firm:null },
-  { id:'u4', name:'David Walsh', role:'SELLER_CONVEYANCER', firm:'Walsh & Associates' },
-  { id:'u5', name:'Emma Wilson', role:'AGENT', firm:'Wilson Realty' },
-  { id:'u6', name:'Admin User', role:'ADMIN', firm:'Settlement OS' },
+  { id:'u1', name:'Jane Cooper',    username:'jane.cooper',    password:'cooper123',  role:'BUYER_CONVEYANCER',  firm:'Cooper Legal' },
+  { id:'u2', name:'Michael Torres', username:'michael.torres', password:'torres123',  role:'BUYER',              firm:null },
+  { id:'u3', name:'Sarah Chen',     username:'sarah.chen',     password:'chen123',    role:'SELLER',             firm:null },
+  { id:'u4', name:'David Walsh',    username:'david.walsh',    password:'walsh123',   role:'SELLER_CONVEYANCER', firm:'Walsh & Associates' },
+  { id:'u5', name:'Emma Wilson',    username:'emma.wilson',    password:'wilson123',  role:'AGENT',              firm:'Wilson Realty' },
+  { id:'u6', name:'Admin User',     username:'admin',          password:'admin123',   role:'ADMIN',              firm:'Settlement OS' },
 ];
 
 const MOCK_DEALS = [
@@ -181,6 +187,7 @@ const MOCK_LISTINGS = [
     description:'Iconic beachfront apartment with uninterrupted ocean views from every room. Architecturally designed with floor-to-ceiling glass, premium stone finishes and a wraparound terrace.',
     features:['Ocean Views','Rooftop Pool','Concierge','Secure Parking','Smart Home'],
     color:'from-cyan-400 to-blue-600', emoji:'🏄', listingRef:'REA-NSW-90124',
+    image:'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&h=500&fit=crop&q=80',
   },
   {
     id:'l2', poolId:'p2', status:'LIVE', submittedBy:'Emma Wilson', adminNotes:[],
@@ -190,6 +197,7 @@ const MOCK_LISTINGS = [
     description:'Architecturally striking townhouse in the heart of South Yarra. Designer kitchen, private rooftop terrace with city skyline views, and integrated smart-home automation throughout.',
     features:['City Views','Rooftop Terrace','EV Charging','Designer Kitchen','Smart Home'],
     color:'from-amber-400 to-orange-600', emoji:'🏙️', listingRef:'REA-VIC-90125',
+    image:'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=500&fit=crop&q=80',
   },
   {
     id:'l3', poolId:'p3', status:'LIVE', submittedBy:'Emma Wilson', adminNotes:[],
@@ -199,6 +207,7 @@ const MOCK_LISTINGS = [
     description:'High-yield holiday apartment in the heart of Surfers Paradise. Strong short-stay rental history, resort-style facilities and direct beach access. Managed by on-site letting agent.',
     features:['Beach Access','Resort Pool','Spa','Gym','Managed Letting'],
     color:'from-yellow-400 to-orange-500', emoji:'🌞', listingRef:'REA-QLD-90126',
+    image:'https://images.unsplash.com/photo-1582761370596-77a6a42350d7?w=800&h=500&fit=crop&q=80',
   },
   {
     id:'l4', poolId:'p4', status:'LIVE', submittedBy:'Emma Wilson', adminNotes:[],
@@ -208,6 +217,7 @@ const MOCK_LISTINGS = [
     description:'Premium beachside residence in Cottesloe, one of Perth\'s most sought-after suburbs. Entertainers\' dream with infinity pool, outdoor kitchen and panoramic Indian Ocean views.',
     features:['Ocean Views','Infinity Pool','Outdoor Kitchen','Triple Garage','Solar 13kW'],
     color:'from-indigo-400 to-blue-700', emoji:'🌊', listingRef:'REA-WA-90127',
+    image:'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=500&fit=crop&q=80',
   },
   {
     id:'l5', poolId:'p5', status:'LIVE', submittedBy:'Emma Wilson', adminNotes:[],
@@ -217,6 +227,7 @@ const MOCK_LISTINGS = [
     description:'Commanding double-storey home in blue-chip Norwood. Open-plan living, alfresco entertaining and north-facing pool. Walking distance to The Parade dining and retail precinct.',
     features:['Swimming Pool','Ducted A/C','Double Garage','Alfresco','Solar 6.6kW'],
     color:'from-rose-400 to-pink-600', emoji:'🏡', listingRef:'REA-SA-90128',
+    image:'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=500&fit=crop&q=80',
   },
   {
     id:'l6', poolId:'p6', status:'LIVE', submittedBy:'Emma Wilson', adminNotes:[],
@@ -226,6 +237,7 @@ const MOCK_LISTINGS = [
     description:'Beautifully restored sandstone cottage steps from the iconic Salamanca Market. Heritage-listed facade with a fully modernised interior. Exceptional short-stay and long-term rental demand.',
     features:['Heritage Listed','Fully Renovated','Courtyard Garden','Fireplace','Steps to Salamanca'],
     color:'from-emerald-400 to-teal-600', emoji:'🏛️', listingRef:'REA-TAS-90129',
+    image:'https://images.unsplash.com/photo-1759972268078-e51691a47301?w=800&h=500&fit=crop&q=80',
   },
   {
     id:'l7', poolId:'p7', status:'LIVE', submittedBy:'Emma Wilson', adminNotes:[],
@@ -235,6 +247,7 @@ const MOCK_LISTINGS = [
     description:'Architect-designed tropical villa in Canggu\'s most sought-after surf corridor. Private infinity pool, open-plan living pavilion, and lush rice-field views. Strong Airbnb history with a professional on-site management team.',
     features:['Infinity Pool','Rice Field Views','Airbnb Managed','Outdoor Kitchen','Smart Home'],
     color:'from-green-400 to-emerald-600', emoji:'🌴', listingRef:'BALI-CANG-90130',
+    image:'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=800&h=500&fit=crop&q=80',
   },
   {
     id:'l8', poolId:'p8', status:'LIVE', submittedBy:'Emma Wilson', adminNotes:[],
@@ -244,6 +257,7 @@ const MOCK_LISTINGS = [
     description:'Boutique four-bedroom villa in the heart of Seminyak\'s premium hospitality strip. Steps from Ku De Ta and Potato Head Beach Club. Fully licensed as a commercial villa with a proven occupancy rate above 78%.',
     features:['Commercial Licence','Steps to Beach Clubs','Private Pool','Rooftop Terrace','Managed Letting'],
     color:'from-pink-400 to-rose-600', emoji:'🏖️', listingRef:'BALI-SEMI-90131',
+    image:'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=800&h=500&fit=crop&q=80',
   },
   {
     id:'l9', poolId:'p9', status:'LIVE', submittedBy:'Emma Wilson', adminNotes:[],
@@ -253,6 +267,7 @@ const MOCK_LISTINGS = [
     description:'Cliffside villa perched above the Indian Ocean with panoramic sunset views. Brand-new construction to ISO resort standards, with a 25-metre infinity pool cantilevered over the cliff edge. Among the highest short-stay yields in Uluwatu.',
     features:['Ocean Cliff Views','25m Infinity Pool','New Build 2023','Sunset Terrace','Boutique Resort Standard'],
     color:'from-sky-400 to-indigo-600', emoji:'🌊', listingRef:'BALI-ULUW-90132',
+    image:'https://images.unsplash.com/photo-1587847139658-201a62d23770?w=800&h=500&fit=crop&q=80',
   },
   {
     id:'l10', poolId:null, status:'PENDING', submittedBy:'Tom Richards', adminNotes:[],
@@ -262,6 +277,7 @@ const MOCK_LISTINGS = [
     description:'Sleek two-bedroom apartment on the 34th floor of a landmark Melbourne CBD tower. Floor-to-ceiling glazing with sweeping city skyline and Yarra River views. Premium concierge building with rooftop pool and gym.',
     features:['City Views','Rooftop Pool','Concierge','Gym','Secure Parking'],
     color:'from-violet-400 to-purple-600', emoji:'🏢', listingRef:'REA-VIC-90133',
+    image:'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=800&h=500&fit=crop&q=80',
   },
   {
     id:'l11', poolId:null, status:'PENDING', submittedBy:'Wayan Sukerta', adminNotes:[
@@ -273,6 +289,7 @@ const MOCK_LISTINGS = [
     description:'Serene three-bedroom villa nestled in the rice terraces of Ubud. Traditional Balinese architecture with a contemporary interior, private plunge pool, and daily breakfast included. Strong year-round occupancy driven by the Ubud wellness and arts tourism market.',
     features:['Rice Terrace Views','Plunge Pool','Breakfast Included','Traditional Architecture','Walking Distance to Ubud Centre'],
     color:'from-lime-400 to-green-600', emoji:'🌿', listingRef:'BALI-UBUD-90134',
+    image:'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=800&h=500&fit=crop&q=80',
   },
   {
     id:'l12', poolId:null, status:'LIVE', submittedBy:'Emma Wilson', adminNotes:[], saleType:'buy_now',
@@ -282,6 +299,7 @@ const MOCK_LISTINGS = [
     description:'Grand family residence in prestigious Mosman with uninterrupted Sydney Harbour views. Architect-designed entertainer featuring a resort-style pool, home theatre, separate guest suite, and private landscaped gardens. One of the last remaining large blocks in this blue-chip suburb.',
     features:['Harbour Views','Resort Pool','Home Theatre','Triple Garage','Guest Suite'],
     color:'from-sky-400 to-cyan-600', emoji:'⛵', listingRef:'REA-NSW-90140',
+    image:'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=800&h=500&fit=crop&q=80',
   },
   {
     id:'l13', poolId:null, status:'LIVE', submittedBy:'Emma Wilson', adminNotes:[], saleType:'buy_now',
@@ -291,6 +309,7 @@ const MOCK_LISTINGS = [
     description:'Brand-new luxury apartment on the iconic St Kilda Road with sweeping bay and city views. Designed by a Pritzker-nominated studio, featuring premium European appliances, floor-to-ceiling glazing, and 24/7 concierge in a boutique 12-residence building.',
     features:['Bay Views','24/7 Concierge','European Appliances','Rooftop Garden','Two Car Parks'],
     color:'from-violet-400 to-purple-600', emoji:'🌃', listingRef:'REA-VIC-90141',
+    image:'https://images.unsplash.com/photo-1613545325278-f24b0cae1224?w=800&h=500&fit=crop&q=80',
   },
   {
     id:'l14', poolId:'p10', status:'LIVE', submittedBy:'Emma Wilson', adminNotes:[], saleType:'both',
@@ -300,6 +319,7 @@ const MOCK_LISTINGS = [
     description:'Expansive five-bedroom luxury villa in prime Canggu beachside position. Full commercial villa licence, professional management in place, and consistently achieving 85%+ annual occupancy. Available for full direct purchase or fractional investment through our pooled fund.',
     features:['Beachside','Commercial Licence','Private Pool','Fully Managed','85% Occupancy'],
     color:'from-teal-400 to-emerald-600', emoji:'🏝️', listingRef:'BALI-CANG-90142',
+    image:'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&h=500&fit=crop&q=80',
   },
   {
     id:'l15', poolId:null, status:'LIVE', submittedBy:'Sarah Chen', adminNotes:[], saleType:'buy_now',
@@ -309,6 +329,7 @@ const MOCK_LISTINGS = [
     description:'Architecturally designed waterfront home on the exclusive Noosa Sound canal with direct boat access. Bi-fold glass walls dissolve the boundary between indoor and outdoor living, flowing to a private pontoon and infinity pool overlooking calm waterways.',
     features:['Canal Frontage','Private Pontoon','Infinity Pool','Boat Access','Glass Walls'],
     color:'from-orange-400 to-amber-500', emoji:'🚤', listingRef:'REA-QLD-90143',
+    image:'https://images.unsplash.com/photo-1556909172-54557c7e4fb7?w=800&h=500&fit=crop&q=80',
   },
 ];
 
@@ -349,6 +370,7 @@ let APP = {
   toastTimer: null,
   workspaceTab: 'conditions',
   newComment: '',
+  loginUsername: '', loginPassword: '', loginError: '',
   settlementValidated: false,
   settlementResult: null,
   dealMessages: {},
@@ -362,7 +384,6 @@ let APP = {
   showPaymentModal: false,
   _paymentModalTab: 'wallet',
   checkoutPaymentMethod: 'visa',
-  investPoolId: null,
   investAmount: '',
   listingTypeFilter: 'all',
   listingSuburbFilter: 'all',
@@ -421,10 +442,21 @@ function showToast(msg, type='success') {
   APP.toastTimer = setTimeout(() => { APP.toast = null; render(); }, 3000);
 }
 
-function login(role) {
-  const user = MOCK_USERS.find(u => u.role === role) || MOCK_USERS[0];
+function loginWithCredentials() {
+  const user = MOCK_USERS.find(u =>
+    u.username === APP.loginUsername.trim().toLowerCase() &&
+    u.password === APP.loginPassword
+  );
+  if (!user) {
+    APP.loginError = 'Incorrect username or password.';
+    render();
+    return;
+  }
   APP.currentUser = user;
   APP.view = 'dashboard';
+  APP.loginUsername = '';
+  APP.loginPassword = '';
+  APP.loginError = '';
   render();
 }
 
@@ -924,10 +956,16 @@ function buildLandingPage() {
 // LOGIN
 // ═══════════════════════════════════════════════════════════════════════════
 function buildLogin() {
-  const page = el('div', 'min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-slate-100');
+  const page = el('div', 'min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-slate-100 p-4');
+  const roleLabels = {
+    BUYER_CONVEYANCER:"Buyer's Conveyancer", SELLER_CONVEYANCER:"Seller's Conveyancer",
+    BUYER:'Buyer', SELLER:'Seller', AGENT:'Real Estate Agent', ADMIN:'Administrator',
+  };
   page.innerHTML = `
     <div class="w-full max-w-sm">
       <div class="bg-white rounded-2xl border border-gray-200 shadow-lg p-8">
+
+        <!-- Logo -->
         <div class="text-center mb-8">
           <div class="inline-flex items-center justify-center w-14 h-14 bg-indigo-600 rounded-2xl mb-4 shadow-lg">
             <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -936,27 +974,50 @@ function buildLogin() {
             </svg>
           </div>
           <h1 class="text-2xl font-bold text-gray-900">Settlement OS</h1>
-          <p class="text-sm text-gray-400 mt-1">Property Settlement Platform</p>
+          <p class="text-sm text-gray-400 mt-1">Sign in to your account</p>
         </div>
-        <p class="text-sm font-medium text-gray-700 mb-3 text-center">Sign in as:</p>
-        <div class="space-y-2" id="loginBtns"></div>
-        <p class="text-center text-xs text-gray-400 mt-6">Demo mode — no real data</p>
+
+        <!-- Error -->
+        ${APP.loginError ? `
+        <div class="bg-rose-50 border border-rose-200 rounded-lg px-4 py-3 mb-5 flex items-center gap-2">
+          <svg class="w-4 h-4 text-rose-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <p class="text-sm text-rose-700">${APP.loginError}</p>
+        </div>` : ''}
+
+        <!-- Form -->
+        <div class="space-y-4 mb-6">
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1.5">Username</label>
+            <input id="loginUsernameInput" type="text" value="${APP.loginUsername}"
+              oninput="APP.loginUsername=this.value;APP.loginError=''"
+              onkeydown="if(event.key==='Enter')loginWithCredentials()"
+              placeholder="e.g. jane.cooper"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${APP.loginError?'border-rose-300':''}"/>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1.5">Password</label>
+            <input id="loginPasswordInput" type="password" value="${APP.loginPassword}"
+              oninput="APP.loginPassword=this.value;APP.loginError=''"
+              onkeydown="if(event.key==='Enter')loginWithCredentials()"
+              placeholder="••••••••"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${APP.loginError?'border-rose-300':''}"/>
+          </div>
+        </div>
+
+        <button onclick="loginWithCredentials()"
+          class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors">
+          Sign In
+        </button>
+
+        <!-- Back to browse -->
+        <button onclick="APP.view='browse';APP.landingTab='listings';render()"
+          class="w-full mt-3 py-2 text-sm text-gray-500 hover:text-indigo-600 transition-colors">
+          ← Back to listings
+        </button>
+
+
       </div>
     </div>`;
-
-  const roles = [
-    ['BUYER_CONVEYANCER', "Buyer's Conveyancer", 'bg-indigo-600 hover:bg-indigo-700 text-white'],
-    ['SELLER_CONVEYANCER', "Seller's Conveyancer", 'bg-amber-500 hover:bg-amber-600 text-white'],
-    ['BUYER', 'Buyer', 'bg-blue-500 hover:bg-blue-600 text-white'],
-    ['SELLER', 'Seller', 'bg-rose-500 hover:bg-rose-600 text-white'],
-    ['AGENT', 'Real Estate Agent', 'bg-green-500 hover:bg-green-600 text-white'],
-    ['ADMIN', 'Admin', 'bg-gray-800 hover:bg-gray-900 text-white'],
-  ];
-  const container = page.querySelector('#loginBtns');
-  roles.forEach(([role, label, cls]) => {
-    const b = btn(label, `w-full py-2.5 px-4 rounded-lg text-sm font-medium transition-colors ${cls}`, () => login(role));
-    container.appendChild(b);
-  });
   return page;
 }
 
@@ -2426,8 +2487,9 @@ function buildListings() {
     const pct = pool ? Math.round((pool.amountRaised / pool.targetRaise) * 100) : 0;
     const card = el('div', 'bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group');
     card.innerHTML = `
-      <div class="h-44 bg-gradient-to-br ${listing.color} flex items-center justify-center relative">
+      <div class="h-44 bg-gradient-to-br ${listing.color} flex items-center justify-center relative overflow-hidden">
         <span class="text-6xl">${listing.emoji}</span>
+        ${listing.image ? `<img src="${listing.image}" alt="${listing.suburb} ${listing.type}" class="absolute inset-0 w-full h-full object-cover" onerror="this.remove()">` : ''}
         <div class="absolute top-3 left-3">
           <span class="bg-white/90 backdrop-blur text-gray-700 text-xs font-semibold px-2.5 py-1 rounded-full">${listing.type}</span>
         </div>
@@ -2566,9 +2628,7 @@ function buildInvest() {
         <span class="text-green-600 font-mono text-xs">${APP.walletAddress}</span>
         <button onclick="APP.walletConnected=false;APP.walletAddress=null;render()" class="ml-auto text-xs text-gray-400 hover:text-gray-600">Disconnect</button>
        </div>`
-    : `<button onclick="APP.showPaymentModal=true;render()" class="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors">
-        💳 Payment
-       </button>`;
+    : '';
 
   inner.innerHTML = `
     <div class="flex items-start justify-between mb-2">
@@ -2594,7 +2654,20 @@ function buildInvest() {
 
     const card = el('div', `bg-white border rounded-2xl overflow-hidden transition-shadow ${isFunded ? 'border-gray-200 opacity-80' : 'border-gray-200 hover:shadow-md'}`);
     card.innerHTML = `
-      <div class="h-3 bg-gradient-to-r ${listing?.color || 'from-gray-400 to-gray-600'}"></div>
+      <div class="h-40 bg-gradient-to-br ${listing?.color || 'from-gray-400 to-gray-600'} flex items-center justify-center relative overflow-hidden">
+        <span class="text-5xl">${listing?.emoji || '🏠'}</span>
+        ${listing?.image ? `<img src="${listing.image}" alt="${listing?.suburb} ${listing?.type}" class="absolute inset-0 w-full h-full object-cover" onerror="this.remove()">` : ''}
+        <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+        <div class="absolute bottom-3 left-3 right-3">
+          <p class="text-white font-bold text-sm leading-tight">${pool.name}</p>
+          <p class="text-white/80 text-xs mt-0.5">${listing?.suburb || ''} · ${listing?.type || ''}</p>
+        </div>
+        <div class="absolute top-3 right-3">
+          <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${isFunded ? 'bg-gray-900/80 text-white' : 'bg-green-500/90 text-white'}">
+            ${isFunded ? 'Fully Funded' : 'Open'}
+          </span>
+        </div>
+      </div>
       <div class="p-6">
         <div class="flex items-start justify-between mb-3">
           <div>
@@ -2652,7 +2725,7 @@ function buildInvest() {
           <div class="flex gap-2">
             <input id="amt_${pool.id}" type="number" min="${pool.minInvestment}" placeholder="Amount (AUD)"
               class="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              oninput="APP.investAmount=this.value" value="${APP.investPoolId===pool.id?APP.investAmount:''}"/>
+              oninput="APP.investAmount=this.value" value=""/>
             <button onclick="openCheckout('${pool.id}','amt_${pool.id}')"
               class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors whitespace-nowrap">
               Invest

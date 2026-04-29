@@ -1,5 +1,5 @@
-import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, VersioningType } from '@nestjs/common';
+import { NestFactory, Reflector } from '@nestjs/core';
+import { ValidationPipe, VersioningType, Logger } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import * as compression from 'compression';
@@ -8,6 +8,8 @@ import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
+  const logger = new Logger('Bootstrap');
+
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log'],
   });
@@ -15,6 +17,7 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT', 3001);
   const frontendUrl = configService.get<string>('FRONTEND_URL', 'http://localhost:3000');
+  const isProd = configService.get<string>('NODE_ENV') === 'production';
 
   app.use(helmet());
   app.use(compression());
@@ -39,25 +42,26 @@ async function bootstrap() {
 
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('Property Settlement OS API')
-    .setDescription('Backend API for coordinating Australian property settlements')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .addTag('auth')
-    .addTag('deals')
-    .addTag('conditions')
-    .addTag('documents')
-    .addTag('settlement')
-    .addTag('notifications')
-    .build();
-
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('docs', app, document);
+  if (!isProd) {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('Property Settlement OS API')
+      .setDescription('Backend API for coordinating Australian property settlements')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .addTag('auth')
+      .addTag('deals')
+      .addTag('conditions')
+      .addTag('documents')
+      .addTag('settlement')
+      .addTag('notifications')
+      .build();
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('docs', app, document);
+    logger.log(`Swagger docs: http://localhost:${port}/docs`);
+  }
 
   await app.listen(port);
-  console.log(`Settlement OS API running on port ${port}`);
-  console.log(`Swagger docs: http://localhost:${port}/docs`);
+  logger.log(`Settlement OS API running on port ${port} [${isProd ? 'production' : 'development'}]`);
 }
 
 bootstrap();

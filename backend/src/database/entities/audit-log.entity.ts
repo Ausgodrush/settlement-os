@@ -27,7 +27,7 @@ export class AuditLog {
   @Column({ name: 'entity_type', length: 50, nullable: true })
   entityType: string;
 
-  @Column({ name: 'entity_id', type: 'uuid', nullable: true })
+  @Column({ name: 'entity_id', nullable: true })
   entityId: string;
 
   @Column({ name: 'old_value', type: 'simple-json', nullable: true })
@@ -39,7 +39,7 @@ export class AuditLog {
   @Column({ type: 'simple-json', nullable: true })
   metadata: Record<string, any>;
 
-  @Column({ name: 'ip_address', type: 'inet', nullable: true })
+  @Column({ name: 'ip_address', nullable: true })
   ipAddress: string;
 
   @Column({ name: 'user_agent', type: 'text', nullable: true })

@@ -49,7 +49,7 @@ export class Condition {
   @Column({ name: 'assigned_to_role', length: 30, nullable: true })
   assignedToRole: string;
 
-  @Column({ name: 'evidence_doc_id', type: 'uuid', nullable: true })
+  @Column({ name: 'evidence_doc_id', nullable: true })
   evidenceDocId: string;
 
   @ManyToOne(() => User, { nullable: true })

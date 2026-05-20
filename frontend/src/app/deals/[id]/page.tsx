@@ -1,7 +1,9 @@
-import DealWorkspaceClient from './DealWorkspaceClient';
+import dynamic from 'next/dynamic';
+
+const DealWorkspaceClient = dynamic(() => import('./DealWorkspaceClient'), { ssr: false });
 
 export function generateStaticParams() {
-  return [];
+  return [{ id: '_' }];
 }
 
 export default function DealWorkspacePage() {

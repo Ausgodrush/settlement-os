@@ -26,8 +26,8 @@ const IS_DEMO =
 // When self-activating demo mode (start-demo.js was not used as the startup file),
 // inject required env defaults before ConfigModule initialises.
 if (IS_DEMO) {
-  process.env.DEMO_MODE ??= 'true';
-  process.env.NODE_ENV  ??= 'development';
+  process.env.DEMO_MODE = 'true';
+  process.env.NODE_ENV  = 'development'; // Force dev so Swagger stays enabled (Hostinger sets production)
   process.env.JWT_SECRET ??= 'demo-only-jwt-secret-change-before-live-xK9mP2nQ';
   process.env.PEXA_MOCK_MODE     ??= 'true';
   process.env.DOCUSIGN_MOCK_MODE ??= 'true';

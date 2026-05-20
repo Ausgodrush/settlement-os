@@ -26,27 +26,29 @@ const IS_DEMO = process.env.DEMO_MODE === 'true';
 
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService): TypeOrmModuleOptions =>
-        IS_DEMO
-          ? {
-              type: 'sqljs' as const,
-              synchronize: true,
-              entities: [__dirname + '/database/entities/*.entity{.ts,.js}'],
-              logging: false,
-            }
-          : {
-              type: 'postgres' as const,
-              host: config.get('DB_HOST'),
-              port: config.get<number>('DB_PORT', 5432),
-              database: config.get('DB_NAME'),
-              username: config.get('DB_USER'),
-              password: config.get('DB_PASSWORD'),
-              ssl: config.get('DB_SSL') === 'true' ? { rejectUnauthorized: false } : false,
-              entities: [__dirname + '/database/entities/*.entity{.ts,.js}'],
-              migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
-              synchronize: config.get('NODE_ENV') === 'development',
-              logging: config.get('NODE_ENV') === 'development',
-            },
+      useFactory: (config: ConfigService): TypeOrmModuleOptions => {
+        if (IS_DEMO) {
+          return {
+            type: 'sqljs',
+            synchronize: true,
+            entities: [__dirname + '/database/entities/*.entity{.ts,.js}'],
+            logging: false,
+          };
+        }
+        return {
+          type: 'postgres',
+          host: config.get<string>('DB_HOST'),
+          port: config.get<number>('DB_PORT', 5432),
+          database: config.get<string>('DB_NAME'),
+          username: config.get<string>('DB_USER'),
+          password: config.get<string>('DB_PASSWORD'),
+          ssl: config.get('DB_SSL') === 'true' ? { rejectUnauthorized: false } : false,
+          entities: [__dirname + '/database/entities/*.entity{.ts,.js}'],
+          migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
+          synchronize: config.get('NODE_ENV') === 'development',
+          logging: config.get('NODE_ENV') === 'development',
+        };
+      },
     }),
 
     ...(IS_DEMO

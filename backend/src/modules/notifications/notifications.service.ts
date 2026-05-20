@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { InjectQueue } from '@nestjs/bull';
@@ -23,7 +23,8 @@ export class NotificationsService {
   constructor(
     @InjectRepository(Notification) private readonly notifRepo: Repository<Notification>,
     @InjectRepository(DealParty) private readonly partiesRepo: Repository<DealParty>,
-    @InjectQueue('notifications') private readonly notifQueue: Queue,
+    // @Optional() allows this to be null in DEMO_MODE (no Bull/Redis required)
+    @Optional() @InjectQueue('notifications') private readonly notifQueue: Queue | undefined,
     private readonly config: ConfigService,
   ) {}
 
@@ -45,7 +46,14 @@ export class NotificationsService {
 
     for (const notif of saved) {
       if (notif.channel !== NotificationChannel.IN_APP) {
-        await this.notifQueue.add('send', { notificationId: notif.id }, { attempts: 3, backoff: 2000 });
+        if (this.notifQueue) {
+          await this.notifQueue.add('send', { notificationId: notif.id }, { attempts: 3, backoff: 2000 });
+        } else {
+          this.logger.log(`[Demo] Notification "${notif.title}" logged (no queue in demo mode)`);
+          notif.status = NotificationStatus.SENT;
+          notif.sentAt = new Date();
+          await this.notifRepo.save(notif);
+        }
       }
     }
 

@@ -4,6 +4,16 @@ import { useRouter } from 'next/navigation';
 import { saveAuth } from '@/lib/auth';
 import { auth as authApi } from '@/lib/api';
 
+const IS_DEMO = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
+
+const DEMO_ACCOUNTS = [
+  { role: 'Admin', email: 'admin@demo.com' },
+  { role: 'Buyer Conveyancer', email: 'buyer-conv@demo.com' },
+  { role: 'Seller Conveyancer', email: 'seller-conv@demo.com' },
+  { role: 'Buyer', email: 'buyer@demo.com' },
+  { role: 'Seller', email: 'seller@demo.com' },
+];
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,6 +36,12 @@ export default function LoginPage() {
     }
   }
 
+  function fillDemo(demoEmail: string) {
+    setEmail(demoEmail);
+    setPassword('demo1234');
+    setError('');
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-slate-100">
       <div className="w-full max-w-md">
@@ -40,6 +56,26 @@ export default function LoginPage() {
             <h1 className="text-2xl font-bold text-gray-900">Settlement OS</h1>
             <p className="text-sm text-gray-500 mt-1">South Australian Property Settlement Platform</p>
           </div>
+
+          {IS_DEMO && (
+            <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4">
+              <p className="text-xs font-semibold text-amber-800 mb-2">Demo accounts — click to pre-fill</p>
+              <div className="grid grid-cols-1 gap-1">
+                {DEMO_ACCOUNTS.map((acc) => (
+                  <button
+                    key={acc.email}
+                    type="button"
+                    onClick={() => fillDemo(acc.email)}
+                    className="flex items-center justify-between text-left px-3 py-1.5 rounded text-xs hover:bg-amber-100 transition-colors"
+                  >
+                    <span className="font-medium text-amber-900">{acc.role}</span>
+                    <span className="text-amber-600">{acc.email}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-amber-600 mt-2">Password for all accounts: <strong>demo1234</strong></p>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -82,7 +118,7 @@ export default function LoginPage() {
           </form>
 
           <p className="text-center text-xs text-gray-400 mt-6">
-            Protected by role-based access control
+            {IS_DEMO ? 'Demo environment — data resets on restart' : 'Protected by role-based access control'}
           </p>
         </div>
       </div>

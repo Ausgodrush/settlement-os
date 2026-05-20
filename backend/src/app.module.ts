@@ -12,38 +12,59 @@ import { AuditModule } from './modules/audit/audit.module';
 import { SettlementModule } from './modules/settlement/settlement.module';
 import { WebsocketsModule } from './modules/websockets/websockets.module';
 import { IntegrationsModule } from './modules/integrations/integrations.module';
+import { DemoModule } from './modules/demo/demo.module';
+
+// Checked at process start — must be set in OS/platform env, not just .env file
+const IS_DEMO = process.env.DEMO_MODE === 'true';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: IS_DEMO ? '.env.demo' : '.env',
+    }),
 
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        host: config.get('DB_HOST'),
-        port: config.get<number>('DB_PORT', 5432),
-        database: config.get('DB_NAME'),
-        username: config.get('DB_USER'),
-        password: config.get('DB_PASSWORD'),
-        ssl: config.get('DB_SSL') === 'true' ? { rejectUnauthorized: false } : false,
-        entities: [__dirname + '/database/entities/*.entity{.ts,.js}'],
-        migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
-        synchronize: config.get('NODE_ENV') === 'development',
-        logging: config.get('NODE_ENV') === 'development',
-      }),
+      useFactory: (config: ConfigService) =>
+        IS_DEMO
+          ? {
+              type: 'better-sqlite3' as const,
+              database: ':memory:',
+              synchronize: true,
+              dropSchema: false,
+              entities: [__dirname + '/database/entities/*.entity{.ts,.js}'],
+              logging: false,
+            }
+          : {
+              type: 'postgres' as const,
+              host: config.get('DB_HOST'),
+              port: config.get<number>('DB_PORT', 5432),
+              database: config.get('DB_NAME'),
+              username: config.get('DB_USER'),
+              password: config.get('DB_PASSWORD'),
+              ssl: config.get('DB_SSL') === 'true' ? { rejectUnauthorized: false } : false,
+              entities: [__dirname + '/database/entities/*.entity{.ts,.js}'],
+              migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
+              synchronize: config.get('NODE_ENV') === 'development',
+              logging: config.get('NODE_ENV') === 'development',
+            },
     }),
 
-    BullModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        redis: {
-          host: config.get('REDIS_HOST', 'localhost'),
-          port: config.get<number>('REDIS_PORT', 6379),
-          password: config.get('REDIS_PASSWORD') || undefined,
-        },
-      }),
-    }),
+    ...(IS_DEMO
+      ? []
+      : [
+          BullModule.forRootAsync({
+            inject: [ConfigService],
+            useFactory: (config: ConfigService) => ({
+              redis: {
+                host: config.get('REDIS_HOST', 'localhost'),
+                port: config.get<number>('REDIS_PORT', 6379),
+                password: config.get('REDIS_PASSWORD') || undefined,
+              },
+            }),
+          }),
+        ]),
 
     AuthModule,
     UsersModule,
@@ -55,6 +76,8 @@ import { IntegrationsModule } from './modules/integrations/integrations.module';
     SettlementModule,
     WebsocketsModule,
     IntegrationsModule,
+
+    ...(IS_DEMO ? [DemoModule] : []),
   ],
 })
 export class AppModule {}

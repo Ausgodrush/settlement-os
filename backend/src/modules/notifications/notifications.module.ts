@@ -8,13 +8,18 @@ import { Notification } from '../../database/entities/notification.entity';
 import { DealParty } from '../../database/entities/deal-party.entity';
 import { User } from '../../database/entities/user.entity';
 
+const IS_DEMO = process.env.DEMO_MODE === 'true';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([Notification, DealParty, User]),
-    BullModule.registerQueue({ name: 'notifications' }),
+    ...(IS_DEMO ? [] : [BullModule.registerQueue({ name: 'notifications' })]),
   ],
   controllers: [NotificationsController],
-  providers: [NotificationsService, NotificationsProcessor],
+  providers: [
+    NotificationsService,
+    ...(IS_DEMO ? [] : [NotificationsProcessor]),
+  ],
   exports: [NotificationsService],
 })
 export class NotificationsModule {}

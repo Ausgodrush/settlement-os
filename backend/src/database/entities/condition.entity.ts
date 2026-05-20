@@ -39,7 +39,7 @@ export class Condition {
   @Column({ name: 'condition_type', type: 'enum', enum: ConditionType })
   conditionType: ConditionType;
 
-  @Column({ name: 'rule_json', type: 'jsonb' })
+  @Column({ name: 'rule_json', type: 'simple-json' })
   ruleJson: Record<string, any>;
 
   @Index()

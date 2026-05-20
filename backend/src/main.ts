@@ -22,6 +22,12 @@ async function bootstrap() {
   app.use(helmet());
   app.use(compression());
 
+  // Root redirect → Swagger docs (useful for demo; harmless in prod since docs are disabled there)
+  app.use((req: any, res: any, next: any) => {
+    if (req.path === '/' && req.method === 'GET') return res.redirect(302, '/docs');
+    next();
+  });
+
   app.enableCors({
     origin: [frontendUrl, 'https://settlementos.com.au', 'https://www.settlementos.com.au'],
     credentials: true,

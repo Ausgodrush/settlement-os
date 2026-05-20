@@ -23,7 +23,7 @@ export class SettlementExecution {
   @JoinColumn({ name: 'deal_id' })
   deal: Deal;
 
-  @Column({ type: 'enum', enum: ExecutionStatus, default: ExecutionStatus.PENDING })
+  @Column({ type: 'simple-enum', enum: ExecutionStatus, default: ExecutionStatus.PENDING })
   status: ExecutionStatus;
 
   @ManyToOne(() => User, { nullable: true })

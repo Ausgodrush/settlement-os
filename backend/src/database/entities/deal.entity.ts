@@ -22,7 +22,7 @@ export class Deal {
   referenceNo: string;
 
   @Index()
-  @Column({ type: 'enum', enum: DealStatus, default: DealStatus.INIT })
+  @Column({ type: 'simple-enum', enum: DealStatus, default: DealStatus.INIT })
   status: DealStatus;
 
   @Column({ name: 'property_address', type: 'text' })

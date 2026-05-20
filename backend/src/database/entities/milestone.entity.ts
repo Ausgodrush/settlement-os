@@ -38,10 +38,10 @@ export class Milestone {
   @Column({ length: 200 })
   name: string;
 
-  @Column({ name: 'milestone_type', type: 'enum', enum: MilestoneType })
+  @Column({ name: 'milestone_type', type: 'simple-enum', enum: MilestoneType })
   milestoneType: MilestoneType;
 
-  @Column({ type: 'enum', enum: MilestoneStatus, default: MilestoneStatus.PENDING })
+  @Column({ type: 'simple-enum', enum: MilestoneStatus, default: MilestoneStatus.PENDING })
   status: MilestoneStatus;
 
   @Column({ name: 'due_date', type: 'date', nullable: true })

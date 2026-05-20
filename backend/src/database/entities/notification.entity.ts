@@ -38,11 +38,11 @@ export class Notification {
   @Column({ type: 'text' })
   message: string;
 
-  @Column({ type: 'enum', enum: NotificationChannel })
+  @Column({ type: 'simple-enum', enum: NotificationChannel })
   channel: NotificationChannel;
 
   @Index()
-  @Column({ type: 'enum', enum: NotificationStatus, default: NotificationStatus.PENDING })
+  @Column({ type: 'simple-enum', enum: NotificationStatus, default: NotificationStatus.PENDING })
   status: NotificationStatus;
 
   @Column({ name: 'read_at', type: 'timestamptz', nullable: true })

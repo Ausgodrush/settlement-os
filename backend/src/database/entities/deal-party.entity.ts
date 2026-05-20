@@ -29,7 +29,7 @@ export class DealParty {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @Column({ name: 'party_role', type: 'enum', enum: PartyRole })
+  @Column({ name: 'party_role', type: 'simple-enum', enum: PartyRole })
   partyRole: PartyRole;
 
   @Column({ name: 'invited_at', type: 'timestamptz', nullable: true })

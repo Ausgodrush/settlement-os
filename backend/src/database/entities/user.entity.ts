@@ -36,7 +36,7 @@ export class User {
   phone: string;
 
   @Index()
-  @Column({ type: 'enum', enum: UserRole })
+  @Column({ type: 'simple-enum', enum: UserRole })
   role: UserRole;
 
   @Column({ name: 'firm_name', length: 255, nullable: true })

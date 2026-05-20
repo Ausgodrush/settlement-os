@@ -36,7 +36,7 @@ export class Activity {
   @Column({ name: 'actor_role', length: 30, nullable: true })
   actorRole: string;
 
-  @Column({ name: 'event_type', type: 'enum', enum: ActivityEventType })
+  @Column({ name: 'event_type', type: 'simple-enum', enum: ActivityEventType })
   eventType: ActivityEventType;
 
   @Column({ type: 'text' })

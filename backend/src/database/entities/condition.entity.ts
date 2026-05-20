@@ -36,14 +36,14 @@ export class Condition {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ name: 'condition_type', type: 'enum', enum: ConditionType })
+  @Column({ name: 'condition_type', type: 'simple-enum', enum: ConditionType })
   conditionType: ConditionType;
 
   @Column({ name: 'rule_json', type: 'simple-json' })
   ruleJson: Record<string, any>;
 
   @Index()
-  @Column({ type: 'enum', enum: ConditionStatus, default: ConditionStatus.PENDING })
+  @Column({ type: 'simple-enum', enum: ConditionStatus, default: ConditionStatus.PENDING })
   status: ConditionStatus;
 
   @Column({ name: 'assigned_to_role', length: 30, nullable: true })

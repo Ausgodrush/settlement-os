@@ -40,7 +40,7 @@ export class Document {
   originalFilename: string;
 
   @Index()
-  @Column({ name: 'doc_type', type: 'enum', enum: DocType })
+  @Column({ name: 'doc_type', type: 'simple-enum', enum: DocType })
   docType: DocType;
 
   @Column({ name: 's3_bucket', length: 255 })

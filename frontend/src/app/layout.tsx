@@ -6,7 +6,7 @@ import { DemoBanner } from '@/components/DemoBanner';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'BALIPROP — Property Platform',
+  title: 'Settlement OS — Property Platform',
   description: 'Australian and Bali property settlements, coordinated.',
 };
 
@@ -16,7 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className={`${inter.className} bg-gray-50 text-gray-900 antialiased`}>
-        {IS_DEMO && <DemoBanner />}
+        {false && <DemoBanner />}
         {children}
       </body>
     </html>

@@ -29,10 +29,8 @@ const IS_DEMO = process.env.DEMO_MODE === 'true';
       useFactory: (config: ConfigService) =>
         IS_DEMO
           ? {
-              type: 'better-sqlite3' as const,
-              database: ':memory:',
+              type: 'sqljs' as const,
               synchronize: true,
-              dropSchema: false,
               entities: [__dirname + '/database/entities/*.entity{.ts,.js}'],
               logging: false,
             }

@@ -70,7 +70,9 @@ async function bootstrap() {
   app.getHttpAdapter().getInstance().get('*', (req: any, res: any) => {
     const p = req.path as string;
     if (!p.startsWith('/v1') && !p.startsWith('/docs') && !p.startsWith('/socket.io') && !/\.\w{1,5}$/.test(p)) {
-      res.sendFile(indexPath);
+      res.sendFile(indexPath, (err: any) => {
+        if (err) res.status(404).json({ statusCode: 404, message: 'Frontend not yet built — run: cd frontend && npm run build' });
+      });
     }
   });
 }

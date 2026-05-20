@@ -7,7 +7,7 @@ import { User } from './user.entity';
 
 @Entity('audit_logs')
 export class AuditLog {
-  @PrimaryGeneratedColumn('increment', { type: 'bigint' })
+  @PrimaryGeneratedColumn('increment')
   id: number;
 
   @Index()

@@ -67,7 +67,7 @@ export default function Sidebar() {
           </div>
           <div>
             <p className="font-semibold text-gray-900 text-sm">Settlement OS</p>
-            <p className="text-xs text-gray-400">South Australia</p>
+            <p className="text-xs text-gray-400">Property Platform</p>
           </div>
         </div>
       </div>

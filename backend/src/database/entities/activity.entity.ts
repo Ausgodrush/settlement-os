@@ -42,7 +42,7 @@ export class Activity {
   @Column({ type: 'text' })
   message: string;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   metadata: Record<string, any>;
 
   @Column({ name: 'is_system', default: false })

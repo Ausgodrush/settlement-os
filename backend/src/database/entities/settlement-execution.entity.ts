@@ -33,7 +33,7 @@ export class SettlementExecution {
   @Column({ name: 'validated_at', nullable: true })
   validatedAt: Date;
 
-  @Column({ name: 'validation_result', type: 'jsonb', nullable: true })
+  @Column({ name: 'validation_result', type: 'simple-json', nullable: true })
   validationResult: Record<string, any>;
 
   @Column({ name: 'pexa_workspace_id', length: 100, nullable: true })

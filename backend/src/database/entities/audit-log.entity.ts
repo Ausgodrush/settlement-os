@@ -30,13 +30,13 @@ export class AuditLog {
   @Column({ name: 'entity_id', type: 'uuid', nullable: true })
   entityId: string;
 
-  @Column({ name: 'old_value', type: 'jsonb', nullable: true })
+  @Column({ name: 'old_value', type: 'simple-json', nullable: true })
   oldValue: Record<string, any>;
 
-  @Column({ name: 'new_value', type: 'jsonb', nullable: true })
+  @Column({ name: 'new_value', type: 'simple-json', nullable: true })
   newValue: Record<string, any>;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   metadata: Record<string, any>;
 
   @Column({ name: 'ip_address', type: 'inet', nullable: true })

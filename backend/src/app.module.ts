@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bull';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
@@ -26,7 +26,7 @@ const IS_DEMO = process.env.DEMO_MODE === 'true';
 
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) =>
+      useFactory: (config: ConfigService): TypeOrmModuleOptions =>
         IS_DEMO
           ? {
               type: 'sqljs' as const,

@@ -4,6 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import * as compression from 'compression';
 import helmet from 'helmet';
+import { join } from 'path';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
@@ -21,12 +22,6 @@ async function bootstrap() {
 
   app.use(helmet());
   app.use(compression());
-
-  // Root redirect → Swagger docs (useful for demo; harmless in prod since docs are disabled there)
-  app.use((req: any, res: any, next: any) => {
-    if (req.path === '/' && req.method === 'GET') return res.redirect(302, '/docs');
-    next();
-  });
 
   app.enableCors({
     origin: [frontendUrl, 'https://settlementos.com.au', 'https://www.settlementos.com.au', 'https://app.settlementos.com.au'],
@@ -68,6 +63,16 @@ async function bootstrap() {
 
   await app.listen(port);
   logger.log(`Settlement OS API running on port ${port} [${isProd ? 'production' : 'development'}]`);
+
+  // SPA fallback: after NestJS routes are registered, catch unmatched non-API paths
+  // and serve the frontend's index.html so client-side routing works on direct URL access.
+  const indexPath = join(__dirname, '..', 'public', 'index.html');
+  app.getHttpAdapter().getInstance().get('*', (req: any, res: any) => {
+    const p = req.path as string;
+    if (!p.startsWith('/v1') && !p.startsWith('/docs') && !p.startsWith('/socket.io') && !/\.\w{1,5}$/.test(p)) {
+      res.sendFile(indexPath);
+    }
+  });
 }
 
 bootstrap();

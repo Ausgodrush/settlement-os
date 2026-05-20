@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bull';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { DealsModule } from './modules/deals/deals.module';
@@ -33,6 +35,12 @@ if (IS_DEMO) {
 
 @Module({
   imports: [
+    // Serve the built Next.js frontend from backend/public/ (populated by frontend postbuild)
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'public'),
+      exclude: ['/v1/(.*)', '/docs/(.*)'],
+    }),
+
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: IS_DEMO ? '.env.demo' : '.env',

@@ -1,4 +1,4 @@
-import {
+﻿import {
   Entity, PrimaryGeneratedColumn, Column, CreateDateColumn,
   ManyToOne, JoinColumn, Index,
 } from 'typeorm';
@@ -49,6 +49,6 @@ export class Activity {
   isSystem: boolean;
 
   @Index()
-  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }

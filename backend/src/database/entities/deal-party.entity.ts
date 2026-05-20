@@ -1,4 +1,4 @@
-import {
+﻿import {
   Entity, PrimaryGeneratedColumn, Column, CreateDateColumn,
   ManyToOne, JoinColumn, Index, Unique,
 } from 'typeorm';
@@ -32,15 +32,15 @@ export class DealParty {
   @Column({ name: 'party_role', type: 'simple-enum', enum: PartyRole })
   partyRole: PartyRole;
 
-  @Column({ name: 'invited_at', type: 'timestamptz', nullable: true })
+  @Column({ name: 'invited_at', nullable: true })
   invitedAt: Date;
 
-  @Column({ name: 'accepted_at', type: 'timestamptz', nullable: true })
+  @Column({ name: 'accepted_at', nullable: true })
   acceptedAt: Date;
 
   @Column({ name: 'is_active', default: true })
   isActive: boolean;
 
-  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }

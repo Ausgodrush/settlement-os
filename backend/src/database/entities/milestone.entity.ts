@@ -1,4 +1,4 @@
-import {
+﻿import {
   Entity, PrimaryGeneratedColumn, Column, CreateDateColumn,
   ManyToOne, JoinColumn, Index,
 } from 'typeorm';
@@ -47,7 +47,7 @@ export class Milestone {
   @Column({ name: 'due_date', type: 'date', nullable: true })
   dueDate: Date;
 
-  @Column({ name: 'completed_at', type: 'timestamptz', nullable: true })
+  @Column({ name: 'completed_at', nullable: true })
   completedAt: Date;
 
   @ManyToOne(() => User, { nullable: true })
@@ -63,6 +63,6 @@ export class Milestone {
   @Column({ name: 'display_order', default: 0 })
   displayOrder: number;
 
-  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }

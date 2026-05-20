@@ -1,4 +1,4 @@
-import {
+﻿import {
   Entity, PrimaryGeneratedColumn, Column, CreateDateColumn,
   UpdateDateColumn, ManyToOne, JoinColumn, Index,
 } from 'typeorm';
@@ -59,10 +59,10 @@ export class Condition {
   @Column({ name: 'waived_reason', type: 'text', nullable: true })
   waivedReason: string;
 
-  @Column({ name: 'met_at', type: 'timestamptz', nullable: true })
+  @Column({ name: 'met_at', nullable: true })
   metAt: Date;
 
-  @Column({ name: 'evaluated_at', type: 'timestamptz', nullable: true })
+  @Column({ name: 'evaluated_at', nullable: true })
   evaluatedAt: Date;
 
   @Column({ name: 'due_date', type: 'date', nullable: true })
@@ -71,9 +71,9 @@ export class Condition {
   @Column({ name: 'display_order', default: 0 })
   displayOrder: number;
 
-  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 }

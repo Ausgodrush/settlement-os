@@ -1,4 +1,4 @@
-import {
+﻿import {
   Entity, PrimaryGeneratedColumn, Column, CreateDateColumn,
   UpdateDateColumn, ManyToOne, JoinColumn,
 } from 'typeorm';
@@ -30,7 +30,7 @@ export class SettlementExecution {
   @JoinColumn({ name: 'initiated_by' })
   initiatedBy: User;
 
-  @Column({ name: 'validated_at', type: 'timestamptz', nullable: true })
+  @Column({ name: 'validated_at', nullable: true })
   validatedAt: Date;
 
   @Column({ name: 'validation_result', type: 'jsonb', nullable: true })
@@ -42,27 +42,27 @@ export class SettlementExecution {
   @Column({ name: 'pexa_lodgement_ref', length: 100, nullable: true })
   pexaLodgementRef: string;
 
-  @Column({ name: 'pexa_triggered_at', type: 'timestamptz', nullable: true })
+  @Column({ name: 'pexa_triggered_at', nullable: true })
   pexaTriggeredAt: Date;
 
   @Column({ name: 'escrow_released', default: false })
   escrowReleased: boolean;
 
-  @Column({ name: 'escrow_released_at', type: 'timestamptz', nullable: true })
+  @Column({ name: 'escrow_released_at', nullable: true })
   escrowReleasedAt: Date;
 
   @Column({ name: 'escrow_tx_hash', length: 100, nullable: true })
   escrowTxHash: string;
 
-  @Column({ name: 'completed_at', type: 'timestamptz', nullable: true })
+  @Column({ name: 'completed_at', nullable: true })
   completedAt: Date;
 
   @Column({ type: 'text', nullable: true })
   notes: string;
 
-  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 }

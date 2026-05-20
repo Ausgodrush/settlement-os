@@ -1,4 +1,4 @@
-import {
+﻿import {
   Entity, PrimaryGeneratedColumn, Column, CreateDateColumn,
   ManyToOne, JoinColumn, Index,
 } from 'typeorm';
@@ -71,12 +71,12 @@ export class Document {
   @JoinColumn({ name: 'verified_by' })
   verifiedBy: User;
 
-  @Column({ name: 'verified_at', type: 'timestamptz', nullable: true })
+  @Column({ name: 'verified_at', nullable: true })
   verifiedAt: Date;
 
-  @Column({ name: 'deleted_at', type: 'timestamptz', nullable: true })
+  @Column({ name: 'deleted_at', nullable: true })
   deletedAt: Date;
 
-  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }

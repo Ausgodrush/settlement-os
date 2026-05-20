@@ -1,4 +1,4 @@
-import {
+﻿import {
   Entity, PrimaryGeneratedColumn, Column, CreateDateColumn,
   ManyToOne, JoinColumn, Index,
 } from 'typeorm';
@@ -45,10 +45,10 @@ export class Notification {
   @Column({ type: 'simple-enum', enum: NotificationStatus, default: NotificationStatus.PENDING })
   status: NotificationStatus;
 
-  @Column({ name: 'read_at', type: 'timestamptz', nullable: true })
+  @Column({ name: 'read_at', nullable: true })
   readAt: Date;
 
-  @Column({ name: 'sent_at', type: 'timestamptz', nullable: true })
+  @Column({ name: 'sent_at', nullable: true })
   sentAt: Date;
 
   @Column({ name: 'error_msg', type: 'text', nullable: true })
@@ -57,6 +57,6 @@ export class Notification {
   @Column({ name: 'provider_id', length: 255, nullable: true })
   providerId: string;
 
-  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }

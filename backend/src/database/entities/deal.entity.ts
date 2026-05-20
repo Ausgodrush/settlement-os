@@ -1,4 +1,4 @@
-import {
+﻿import {
   Entity, PrimaryGeneratedColumn, Column, CreateDateColumn,
   UpdateDateColumn, ManyToOne, OneToMany, JoinColumn, Index,
 } from 'typeorm';
@@ -52,7 +52,7 @@ export class Deal {
   @Column({ name: 'deposit_paid', default: false })
   depositPaid: boolean;
 
-  @Column({ name: 'deposit_paid_at', type: 'timestamptz', nullable: true })
+  @Column({ name: 'deposit_paid_at', nullable: true })
   depositPaidAt: Date;
 
   @Column({ name: 'contract_date', type: 'date', nullable: true })
@@ -62,7 +62,7 @@ export class Deal {
   @Column({ name: 'settlement_date', type: 'date', nullable: true })
   settlementDate: Date;
 
-  @Column({ name: 'actual_settled_at', type: 'timestamptz', nullable: true })
+  @Column({ name: 'actual_settled_at', nullable: true })
   actualSettledAt: Date;
 
   @Column({ name: 'pexa_workspace_id', length: 100, nullable: true })
@@ -78,9 +78,9 @@ export class Deal {
   @JoinColumn({ name: 'created_by' })
   createdBy: User;
 
-  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 }

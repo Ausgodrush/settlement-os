@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { UserRole, ROLE_LABELS } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
+import { useDeals } from '@/hooks/useDeals';
 
 const navItems = [
   {
@@ -30,22 +31,19 @@ const navItems = [
         d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
     ),
   },
-  {
-    label: 'Documents',
-    href: '/documents',
-    icon: (
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-        d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
-    ),
-  },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { data: dealsData, loading: dealsLoading } = useDeals();
 
   const visibleItems = navItems.filter(
     (item) => !item.roles || (user && item.roles.includes(user.role)),
+  );
+
+  const activeDeals = (dealsData?.data || []).filter(
+    (d) => d.status === 'ACTIVE' || d.status === 'READY',
   );
 
   return (
@@ -66,8 +64,8 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 p-4 space-y-1">
+      {/* Nav links */}
+      <nav className="p-4 space-y-1">
         {visibleItems.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (
@@ -89,7 +87,86 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* User Footer */}
+      {/* My Deals — visible for all logged-in users */}
+      {user && (
+        <div className="flex-1 px-4 pb-4 overflow-y-auto border-t border-gray-100">
+          <div className="pt-4">
+            <div className="flex items-center justify-between mb-2 px-1">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">My Deals</p>
+              <Link href="/deals" className="text-xs text-indigo-500 hover:text-indigo-700 font-medium">
+                All →
+              </Link>
+            </div>
+
+            {dealsLoading ? (
+              <div className="space-y-2">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="animate-pulse px-2 py-2 rounded-lg">
+                    <div className="h-3 bg-gray-100 rounded w-4/5 mb-1.5" />
+                    <div className="h-2 bg-gray-50 rounded w-1/2" />
+                  </div>
+                ))}
+              </div>
+            ) : activeDeals.length === 0 ? (
+              <Link
+                href="/deals/new"
+                className="flex items-center gap-2 px-2 py-2 rounded-lg text-xs text-gray-400 hover:bg-gray-50 hover:text-indigo-600 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Create new deal
+              </Link>
+            ) : (
+              <div className="space-y-0.5">
+                {activeDeals.slice(0, 6).map((deal) => {
+                  const isCurrent = pathname === `/deals/${deal.id}`;
+                  const urgent = deal.daysToSettlement != null && deal.daysToSettlement <= 7;
+                  return (
+                    <Link
+                      key={deal.id}
+                      href={`/deals/${deal.id}`}
+                      className={`block px-2 py-2 rounded-lg transition-colors group ${
+                        isCurrent ? 'bg-indigo-50' : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-1">
+                        <p className={`text-xs font-medium truncate leading-tight ${
+                          isCurrent ? 'text-indigo-700' : 'text-gray-700 group-hover:text-gray-900'
+                        }`}>
+                          {deal.propertyAddress}
+                        </p>
+                        {urgent && (
+                          <span className="w-1.5 h-1.5 bg-red-500 rounded-full flex-shrink-0 mt-1 animate-pulse" />
+                        )}
+                      </div>
+                      <p className="text-[10px] text-gray-400 mt-0.5 flex items-center gap-1.5">
+                        <span className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                          deal.status === 'READY' ? 'bg-amber-400' : 'bg-blue-400'
+                        }`} />
+                        {deal.status === 'READY' ? 'Ready to settle' : 'Active'}
+                        {deal.daysToSettlement != null && deal.daysToSettlement >= 0
+                          ? ` · ${deal.daysToSettlement}d`
+                          : ''}
+                      </p>
+                    </Link>
+                  );
+                })}
+                {dealsData && dealsData.total > 6 && (
+                  <Link
+                    href="/deals"
+                    className="block px-2 py-1.5 text-xs text-gray-400 hover:text-indigo-600 transition-colors"
+                  >
+                    +{dealsData.total - 6} more
+                  </Link>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* User footer */}
       {user && (
         <div className="p-4 border-t border-gray-100">
           <div className="flex items-center gap-3 mb-3">
@@ -102,9 +179,7 @@ export default function Sidebar() {
               <p className="text-sm font-medium text-gray-900 truncate">
                 {user.firstName} {user.lastName}
               </p>
-              <p className="text-xs text-gray-400 truncate">
-                {ROLE_LABELS[user.role]}
-              </p>
+              <p className="text-xs text-gray-400 truncate">{ROLE_LABELS[user.role]}</p>
             </div>
           </div>
           <button

@@ -76,23 +76,31 @@ export default function ListingsPage() {
             <Link
               key={deal.id}
               href={`/deals/${deal.id}`}
-              className="card p-5 block hover:shadow-md hover:border-indigo-200 transition-all group"
+              className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden block hover:shadow-md hover:border-indigo-200 transition-all group"
             >
-              {/* Header */}
-              <div className="flex items-start justify-between mb-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="text-base">{deal.flag}</span>
-                    <p className="font-semibold text-gray-900 text-sm group-hover:text-indigo-600 transition-colors truncate">
-                      {deal.propertyAddress}
-                    </p>
-                  </div>
-                  <p className="text-xs text-gray-400">{deal.suburb}</p>
-                  <p className="text-xs text-gray-300 mt-0.5">{deal.type} · {deal.titleRef}</p>
-                </div>
-                <span className={`ml-3 flex-shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${deal.statusColor}`}>
+              {/* Photo */}
+              <div className="relative h-44 bg-gray-100 overflow-hidden">
+                <img
+                  src={deal.imageUrl}
+                  alt={deal.propertyAddress}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  loading="lazy"
+                />
+                <span className={`absolute top-3 right-3 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${deal.statusColor}`}>
                   {deal.statusLabel}
                 </span>
+                <span className="absolute top-3 left-3 text-xl">{deal.flag}</span>
+              </div>
+
+              {/* Body */}
+              <div className="p-5">
+              {/* Header */}
+              <div className="mb-3">
+                <p className="font-semibold text-gray-900 text-sm group-hover:text-indigo-600 transition-colors truncate">
+                  {deal.propertyAddress}
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5">{deal.suburb}</p>
+                <p className="text-xs text-gray-300 mt-0.5">{deal.type} · {deal.titleRef}</p>
               </div>
 
               {/* Price */}
@@ -150,6 +158,7 @@ export default function ListingsPage() {
                   Open →
                 </span>
               </div>
+              </div>{/* end body */}
             </Link>
           ))}
         </div>

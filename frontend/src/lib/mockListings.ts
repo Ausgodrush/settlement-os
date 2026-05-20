@@ -23,6 +23,7 @@ export const MOCK_LISTINGS = [
     type: '4BR House',
     notes: 'Finance and inspections cleared. Awaiting Section 7 certificate.',
     flag: '🇦🇺',
+    imageUrl: 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=600&q=80',
   },
   {
     id: 'au-002',
@@ -47,6 +48,7 @@ export const MOCK_LISTINGS = [
     type: '5BR Heritage Home',
     notes: 'High-value property. Finance condition expires 30 May.',
     flag: '🇦🇺',
+    imageUrl: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=600&q=80',
   },
   {
     id: 'au-003',
@@ -71,6 +73,7 @@ export const MOCK_LISTINGS = [
     type: '4BR Executive',
     notes: 'Settlement completed via PEXA on 25 Apr 2026.',
     flag: '🇦🇺',
+    imageUrl: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&fit=crop&w=600&q=80',
   },
 
   // ── Bali properties ─────────────────────────────────────────────────────
@@ -97,6 +100,7 @@ export const MOCK_LISTINGS = [
     type: '3BR Private Villa',
     notes: 'Leasehold 25yr + 25yr. Notarial deed lodged with PPAT. Pool & tropical garden.',
     flag: '🇮🇩',
+    imageUrl: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=600&q=80',
   },
   {
     id: 'bali-002',
@@ -121,6 +125,7 @@ export const MOCK_LISTINGS = [
     type: '5BR Luxury Estate',
     notes: 'Freehold Hak Milik via Indonesian nominee. Infinity pool, 2,400m² land.',
     flag: '🇮🇩',
+    imageUrl: 'https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=600&q=80',
   },
   {
     id: 'bali-003',
@@ -145,5 +150,6 @@ export const MOCK_LISTINGS = [
     type: '3BR Ocean-View Villa',
     notes: 'Leasehold 30yr. Title transferred and registered. Direct ocean view.',
     flag: '🇮🇩',
+    imageUrl: 'https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?auto=format&fit=crop&w=600&q=80',
   },
 ];

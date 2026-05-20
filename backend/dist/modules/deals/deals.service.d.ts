@@ -1,0 +1,113 @@
+import { Repository } from 'typeorm';
+import { Deal, DealStatus } from '../../database/entities/deal.entity';
+import { DealParty, PartyRole } from '../../database/entities/deal-party.entity';
+import { Condition } from '../../database/entities/condition.entity';
+import { Milestone } from '../../database/entities/milestone.entity';
+import { User } from '../../database/entities/user.entity';
+import { AuditService } from '../audit/audit.service';
+import { WebsocketsGateway } from '../websockets/websockets.gateway';
+import { ActivityService } from '../audit/activity.service';
+import { CreateDealDto, UpdateDealDto, UpdateDealStatusDto, AddPartyDto, DealQueryDto } from './dto/deals.dto';
+export declare class DealsService {
+    private readonly dealsRepo;
+    private readonly partiesRepo;
+    private readonly conditionsRepo;
+    private readonly milestonesRepo;
+    private readonly usersRepo;
+    private readonly auditService;
+    private readonly activityService;
+    private readonly gateway;
+    constructor(dealsRepo: Repository<Deal>, partiesRepo: Repository<DealParty>, conditionsRepo: Repository<Condition>, milestonesRepo: Repository<Milestone>, usersRepo: Repository<User>, auditService: AuditService, activityService: ActivityService, gateway: WebsocketsGateway);
+    create(dto: CreateDealDto, creator: User): Promise<Deal>;
+    findAll(query: DealQueryDto, user: User): Promise<{
+        data: {
+            daysToSettlement: number | null;
+            conditionsSummary: {
+                total: number;
+                met: number;
+                pending: number;
+            };
+            parties: {
+                id: string;
+                role: PartyRole;
+                user: {
+                    id: string;
+                    name: string;
+                    email: string;
+                };
+            }[];
+            id: string;
+            referenceNo: string;
+            status: DealStatus;
+            propertyAddress: string;
+            propertySuburb: string;
+            propertyState: string;
+            propertyPostcode: string;
+            titleReference: string;
+            landServicesRef: string;
+            purchasePrice: number;
+            depositAmount: number;
+            depositPaid: boolean;
+            depositPaidAt: Date;
+            contractDate: Date;
+            settlementDate: Date;
+            actualSettledAt: Date;
+            pexaWorkspaceId: string;
+            pexaStatus: string;
+            notes: string;
+            createdBy: User;
+            createdAt: Date;
+            updatedAt: Date;
+        }[];
+        total: number;
+        page: number;
+        limit: number;
+    }>;
+    findOne(id: string, user: User): Promise<{
+        daysToSettlement: number | null;
+        conditions: Condition[];
+        milestones: Milestone[];
+        parties: {
+            id: string;
+            role: PartyRole;
+            user: {
+                id: string;
+                name: string;
+                email: string;
+                phone: string;
+                firmName: string;
+            };
+        }[];
+        id: string;
+        referenceNo: string;
+        status: DealStatus;
+        propertyAddress: string;
+        propertySuburb: string;
+        propertyState: string;
+        propertyPostcode: string;
+        titleReference: string;
+        landServicesRef: string;
+        purchasePrice: number;
+        depositAmount: number;
+        depositPaid: boolean;
+        depositPaidAt: Date;
+        contractDate: Date;
+        settlementDate: Date;
+        actualSettledAt: Date;
+        pexaWorkspaceId: string;
+        pexaStatus: string;
+        notes: string;
+        createdBy: User;
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    update(id: string, dto: UpdateDealDto, user: User): Promise<Deal>;
+    updateStatus(id: string, dto: UpdateDealStatusDto, user: User): Promise<Deal>;
+    addParty(dealId: string, dto: AddPartyDto, actor: User): Promise<DealParty>;
+    seedDefaultMilestones(dealId: string): Promise<Milestone[]>;
+    private generateReferenceNo;
+    private validateTransition;
+    private roleToPartyRole;
+    assertAccess(dealId: string, user: User): Promise<void>;
+    getOrFail(id: string): Promise<Deal>;
+}

@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "postbuild": "cp -r out ../backend/public",
+    "postbuild": "node -e \"const {cpSync}=require('fs');cpSync('out','../backend/public',{recursive:true,force:true})\"",
     "start": "next start",
     "lint": "next lint"
   },

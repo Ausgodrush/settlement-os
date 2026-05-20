@@ -14,8 +14,12 @@ import { WebsocketsModule } from './modules/websockets/websockets.module';
 import { IntegrationsModule } from './modules/integrations/integrations.module';
 import { DemoModule } from './modules/demo/demo.module';
 
-// Checked at process start — must be set in OS/platform env, not just .env file
-const IS_DEMO = process.env.DEMO_MODE === 'true';
+// Demo mode activates when explicitly set, OR when no database host is configured.
+// The latter means the app self-activates demo mode on hosts like Hostinger where
+// no PostgreSQL is available, avoiding ECONNREFUSED crash loops.
+const IS_DEMO =
+  process.env.DEMO_MODE === 'true' ||
+  (!process.env.DB_HOST && !process.env.DATABASE_URL);
 
 @Module({
   imports: [

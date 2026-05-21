@@ -37,7 +37,7 @@ export default function DashboardPage() {
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            New Deal
+            New Listing
           </Link>
         </div>
 
@@ -87,7 +87,7 @@ export default function DashboardPage() {
             <div className="card p-12 text-center">
               <p className="text-gray-500 text-sm">No deals yet.</p>
               <Link href="/deals/new" className="btn-primary mt-4 inline-flex">
-                Create your first deal
+                Create your first listing
               </Link>
             </div>
           ) : (

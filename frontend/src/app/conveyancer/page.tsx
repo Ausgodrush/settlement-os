@@ -31,7 +31,7 @@ export default function ConveyancerPipelinePage() {
             <p className="text-sm text-gray-500 mt-0.5">Overview of all deals requiring attention</p>
           </div>
           <Link href="/deals/new" className="btn-primary">
-            New Deal
+            New Listing
           </Link>
         </div>
 

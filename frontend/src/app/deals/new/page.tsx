@@ -56,7 +56,7 @@ export default function NewDealPage() {
             <button onClick={() => router.back()} className="text-gray-400 hover:text-gray-600">
               ←
             </button>
-            <h1 className="text-2xl font-bold text-gray-900">New Deal</h1>
+            <h1 className="text-2xl font-bold text-gray-900">New Listing</h1>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -192,7 +192,7 @@ export default function NewDealPage() {
                 {loading ? (
                   <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
-                  'Create Deal'
+                  'Create Listing'
                 )}
               </button>
               <button type="button" onClick={() => router.back()} className="btn-secondary">

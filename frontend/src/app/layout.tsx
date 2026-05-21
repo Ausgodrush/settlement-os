@@ -6,7 +6,7 @@ import { DemoBanner } from '@/components/DemoBanner';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Settlement OS — Property Platform',
+  title: 'Settlement OS',
   description: 'Australian and Bali property settlements, coordinated.',
 };
 

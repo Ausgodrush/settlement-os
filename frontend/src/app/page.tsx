@@ -79,10 +79,7 @@ export default function Home() {
 
       {/* Hero */}
       <div className="max-w-6xl mx-auto px-6 pt-12 pb-10 text-center">
-        <span className="inline-block bg-indigo-100 text-indigo-700 text-xs font-semibold px-3 py-1 rounded-full mb-4">
-          Property Platform
-        </span>
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">
+<h1 className="text-4xl font-bold text-gray-900 mb-4">
           Australian & Bali Property,<br />Coordinated.
         </h1>
         <p className="text-gray-500 text-lg max-w-xl mx-auto mb-8">

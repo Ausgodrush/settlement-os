@@ -140,9 +140,6 @@ export default function Home() {
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   loading="lazy"
                 />
-                <span className={`absolute top-3 right-3 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${deal.statusColor}`}>
-                  {deal.statusLabel}
-                </span>
                 <span className="absolute top-3 left-3 text-xl">{deal.flag}</span>
               </div>
 

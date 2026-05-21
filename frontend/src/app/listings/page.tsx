@@ -8,8 +8,6 @@ import { MOCK_LISTINGS } from '@/lib/mockListings';
 
 const IS_DEMO = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
-type Filter = 'ALL' | 'AU' | 'ID';
-
 async function attemptDemoLogin(): Promise<void> {
   const timeout = new Promise<never>((_, reject) =>
     setTimeout(() => reject(new Error('timeout')), 5000),
@@ -24,12 +22,7 @@ async function attemptDemoLogin(): Promise<void> {
 
 export default function ListingsPage() {
   const router = useRouter();
-  const [filter, setFilter] = useState<Filter>('ALL');
   const [signingIn, setSigningIn] = useState(false);
-
-  const visible = filter === 'ALL'
-    ? MOCK_LISTINGS
-    : MOCK_LISTINGS.filter((d) => d.country === filter);
 
   const totalValue = MOCK_LISTINGS.reduce((s, d) => s + d.purchasePrice, 0);
   const activeCount = MOCK_LISTINGS.filter((d) => !d.settled).length;
@@ -127,26 +120,9 @@ export default function ListingsPage() {
           </div>
         </div>
 
-        {/* Filter tabs */}
-        <div className="flex bg-gray-100 rounded-lg p-1 gap-1 mb-6 w-fit">
-          {(['ALL', 'AU', 'ID'] as Filter[]).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                filter === f
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              {f === 'ALL' ? 'All' : f === 'AU' ? '🇦🇺 Australia' : '🇮🇩 Bali'}
-            </button>
-          ))}
-        </div>
-
         {/* Grid */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
-          {visible.map((deal) => (
+          {MOCK_LISTINGS.map((deal) => (
             <div
               key={deal.id}
               className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden block hover:shadow-md hover:border-indigo-200 transition-all group"
@@ -159,9 +135,6 @@ export default function ListingsPage() {
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   loading="lazy"
                 />
-                <span className={`absolute top-3 right-3 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${deal.statusColor}`}>
-                  {deal.statusLabel}
-                </span>
                 <span className="absolute top-3 left-3 text-xl">{deal.flag}</span>
               </div>
 

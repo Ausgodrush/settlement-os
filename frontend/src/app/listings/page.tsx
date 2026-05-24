@@ -1,78 +1,21 @@
 'use client';
 import Link from 'next/link';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { getStoredUser, saveAuth } from '@/lib/auth';
-import { auth as authApi } from '@/lib/api';
+import Sidebar from '@/components/layout/Sidebar';
+import { getStoredUser } from '@/lib/auth';
 import { MOCK_LISTINGS } from '@/lib/mockListings';
 
-async function attemptLogin(): Promise<void> {
-  const timeout = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error('timeout')), 5000),
-  );
-  try {
-    const res = await Promise.race([authApi.login('admin@demo.com', 'demo1234'), timeout]);
-    saveAuth(res as Awaited<ReturnType<typeof authApi.login>>);
-  } catch {
-    // proceed anyway — login page will handle unauthenticated state
-  }
-}
-
 export default function ListingsPage() {
-  const router = useRouter();
-  const [signingIn, setSigningIn] = useState(false);
-
   const totalValue = MOCK_LISTINGS.reduce((s, d) => s + d.purchasePrice, 0);
   const activeCount = MOCK_LISTINGS.filter((d) => !d.settled).length;
   const settledCount = MOCK_LISTINGS.filter((d) => d.settled).length;
 
-  async function handleSignIn() {
-    if (signingIn) return;
-    setSigningIn(true);
-    await attemptLogin();
-    router.push('/dashboard');
-  }
-
   const isLoggedIn = typeof window !== 'undefined' && !!getStoredUser();
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Public Navbar */}
-      <nav className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link href="/listings" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-              </svg>
-            </div>
-            <span className="font-bold text-gray-900">Settlement OS</span>
-          </Link>
-          <div className="flex items-center gap-3">
-            {isLoggedIn ? (
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
-              >
-                Dashboard →
-              </Link>
-            ) : (
-              <button
-                onClick={handleSignIn}
-                disabled={signingIn}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-60 transition-colors"
-              >
-                {signingIn
-                  ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Opening…</>
-                  : 'Sign in →'}
-              </button>
-            )}
-          </div>
-        </div>
-      </nav>
+    <div className="flex min-h-screen">
+      <Sidebar />
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="flex-1 p-8 overflow-y-auto bg-gray-50">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -193,13 +136,11 @@ export default function ListingsPage() {
           ))}
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-8">
-          {isLoggedIn ? (
-            <>Showing demo listings · <Link href="/deals" className="text-indigo-500 hover:underline">Manage all deals</Link></>
-          ) : (
-            <>Browse freely · <button onClick={handleSignIn} className="text-indigo-500 hover:underline">Sign in to manage deals</button></>
-          )}
-        </p>
+        {isLoggedIn && (
+          <p className="text-center text-xs text-gray-400 mt-8">
+            Showing demo listings · <Link href="/deals" className="text-indigo-500 hover:underline">Manage all deals</Link>
+          </p>
+        )}
       </main>
     </div>
   );

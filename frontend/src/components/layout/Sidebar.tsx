@@ -9,6 +9,7 @@ const navItems = [
   {
     label: 'Dashboard',
     href: '/dashboard',
+    requiresAuth: true,
     icon: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
         d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -17,6 +18,7 @@ const navItems = [
   {
     label: 'Listings',
     href: '/listings',
+    requiresAuth: false,
     icon: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
         d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
@@ -25,6 +27,7 @@ const navItems = [
   {
     label: 'Deals',
     href: '/deals',
+    requiresAuth: true,
     icon: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
         d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -33,6 +36,7 @@ const navItems = [
   {
     label: 'Pipeline',
     href: '/conveyancer',
+    requiresAuth: true,
     roles: ['BUYER_CONVEYANCER', 'SELLER_CONVEYANCER', 'ADMIN'] as UserRole[],
     icon: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -46,9 +50,11 @@ export default function Sidebar() {
   const { user, logout } = useAuth();
   const { data: dealsData, loading: dealsLoading } = useDeals();
 
-  const visibleItems = navItems.filter(
-    (item) => !item.roles || (user && item.roles.includes(user.role)),
-  );
+  const visibleItems = navItems.filter((item) => {
+    if (item.requiresAuth && !user) return false;
+    if (item.roles && (!user || !item.roles.includes(user.role))) return false;
+    return true;
+  });
 
   const activeDeals = (dealsData?.data || []).filter(
     (d) => d.status === 'ACTIVE' || d.status === 'READY',
@@ -56,9 +62,9 @@ export default function Sidebar() {
 
   return (
     <aside className="w-64 min-h-screen bg-white border-r border-gray-200 flex flex-col">
-      {/* Logo */}
+      {/* Logo — links to home/landing page */}
       <div className="p-6 border-b border-gray-100">
-        <Link href="/listings" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+        <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
           <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
             <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -95,7 +101,7 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* My Deals — visible for all logged-in users */}
+      {/* My Deals — logged-in users only */}
       {user && (
         <div className="flex-1 px-4 pb-4 overflow-y-auto border-t border-gray-100">
           <div className="pt-4">
@@ -174,7 +180,7 @@ export default function Sidebar() {
         </div>
       )}
 
-      {/* User footer */}
+      {/* User footer (logged in) */}
       {user && (
         <div className="p-4 border-t border-gray-100">
           <div className="flex items-center gap-3 mb-3">
@@ -200,6 +206,22 @@ export default function Sidebar() {
             </svg>
             Sign out
           </button>
+        </div>
+      )}
+
+      {/* Sign in footer (logged out) */}
+      {!user && (
+        <div className="p-4 border-t border-gray-100 mt-auto">
+          <Link
+            href="/login"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+            </svg>
+            Sign in
+          </Link>
         </div>
       )}
     </aside>

@@ -75,7 +75,9 @@ export default function DealsPage() {
             ))}
           </div>
         ) : error ? (
-          <div className="card p-8 text-center text-red-600">{error}</div>
+          <div className="card p-12 text-center">
+            <p className="text-gray-500 text-sm">Unable to load deals. Please try again.</p>
+          </div>
         ) : data?.data.length === 0 ? (
           <div className="card p-12 text-center">
             <p className="text-gray-500">No deals found.</p>

@@ -50,25 +50,23 @@ export function VisaIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 60 38" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Visa">
       <defs>
-        <clipPath id="visa-clip">
-          <rect width="60" height="38" rx="4"/>
-        </clipPath>
+        <linearGradient id="visa-bg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="84%" stopColor="#1A1F71"/>
+          <stop offset="84%" stopColor="#F7B600"/>
+        </linearGradient>
       </defs>
-      <rect width="60" height="38" rx="4" fill="white"/>
-      {/* Gold bottom stripe clipped to card shape */}
-      <rect y="32" width="60" height="6" fill="#F7B600" clipPath="url(#visa-clip)"/>
-      {/* Border drawn last so it sits on top */}
-      <rect width="60" height="38" rx="4" fill="none" stroke="#D0D0D0" strokeWidth="0.75"/>
-      {/* VISA wordmark — navy italic bold */}
+      {/* Navy card + gold bottom stripe via gradient — rx clips both */}
+      <rect width="60" height="38" rx="4" fill="url(#visa-bg)" stroke="#111827" strokeWidth="1.5"/>
+      {/* VISA wordmark — white italic bold */}
       <text
-        x="30" y="20"
+        x="30" y="19"
         dominantBaseline="middle"
         textAnchor="middle"
         fontFamily="'Helvetica Neue', Helvetica, Arial, sans-serif"
         fontSize="22"
         fontStyle="italic"
         fontWeight="900"
-        fill="#1A1F71"
+        fill="white"
         letterSpacing="-0.5"
       >VISA</text>
     </svg>
@@ -76,27 +74,45 @@ export function VisaIcon({ className }: { className?: string }) {
 }
 
 export function MastercardIcon({ className }: { className?: string }) {
-  /* Circles r=11, centers (22,17) and (38,17), d=16
-     Intersection x=30, y=17±√57≈±7.55 → (30,9.45) and (30,24.55) */
+  /* Circles r=12, centers (20,17) and (40,17), d=20
+     Intersection x=30, y=17±√(144-100)=±√44≈±6.63 → (30,10.37) and (30,23.63) */
   return (
     <svg className={className} viewBox="0 0 60 38" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Mastercard">
-      <rect width="60" height="38" rx="4" fill="white" stroke="#D0D0D0" strokeWidth="0.75"/>
+      <rect width="60" height="38" rx="4" fill="#F9F9F9" stroke="#111827" strokeWidth="1.5"/>
       {/* Red left circle */}
-      <circle cx="22" cy="17" r="11" fill="#EB001B"/>
+      <circle cx="20" cy="17" r="12" fill="#EB001B"/>
       {/* Orange right circle */}
-      <circle cx="38" cy="17" r="11" fill="#F79E1B"/>
-      {/* Overlap lens — computed from circle intersections */}
-      <path d="M30 9.45 A11 11 0 0 1 30 24.55 A11 11 0 0 0 30 9.45 Z" fill="#FF5F00"/>
+      <circle cx="40" cy="17" r="12" fill="#F79E1B"/>
+      {/* Overlap lens */}
+      <path d="M30 10.37 A12 12 0 0 1 30 23.63 A12 12 0 0 0 30 10.37 Z" fill="#FF5F00"/>
       {/* mastercard wordmark */}
       <text
         x="30" y="34"
         textAnchor="middle"
         fontFamily="'Helvetica Neue', Helvetica, Arial, sans-serif"
         fontSize="5.5"
-        fontWeight="600"
+        fontWeight="700"
         fill="#231F20"
-        letterSpacing="0.3"
+        letterSpacing="0.4"
       >mastercard</text>
+    </svg>
+  );
+}
+
+export function BankIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 60 38" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Bank transfer">
+      <rect width="60" height="38" rx="4" fill="#F8FAFC" stroke="#111827" strokeWidth="1.5"/>
+      {/* Pediment / roof */}
+      <path d="M10 17 L30 5 L50 17 Z" fill="#1E293B"/>
+      {/* Four columns */}
+      <rect x="12" y="17" width="4" height="12" rx="1" fill="#1E293B"/>
+      <rect x="22" y="17" width="4" height="12" rx="1" fill="#1E293B"/>
+      <rect x="34" y="17" width="4" height="12" rx="1" fill="#1E293B"/>
+      <rect x="44" y="17" width="4" height="12" rx="1" fill="#1E293B"/>
+      {/* Base steps */}
+      <rect x="9" y="29" width="42" height="3" rx="1" fill="#1E293B"/>
+      <rect x="12" y="33" width="36" height="2" rx="1" fill="#1E293B"/>
     </svg>
   );
 }

@@ -13,7 +13,7 @@ import {
 } from '@/lib/investData';
 import { WalletState } from '@/lib/investStore';
 import WalletConnectModal from './WalletConnectModal';
-import { VisaIcon, MastercardIcon, PayPalIcon } from './PaymentIcons';
+import { VisaIcon, MastercardIcon, PayPalIcon, BankIcon } from './PaymentIcons';
 
 interface Props {
   pool: InvestPool;
@@ -30,7 +30,7 @@ const METHODS: { id: PaymentMethod; label: string; icon: React.ReactNode }[] = [
   { id: 'MASTERCARD', label: 'Mastercard', icon: <MastercardIcon className="w-10 h-7 rounded" /> },
   { id: 'PAYPAL', label: 'PayPal', icon: <PayPalIcon className="w-10 h-7 rounded" /> },
   { id: 'CRYPTO', label: 'Crypto', icon: <span className="text-xl">₿</span> },
-  { id: 'BANK', label: 'Bank', icon: <span className="text-xl">🏦</span> },
+  { id: 'BANK', label: 'Bank', icon: <BankIcon className="w-10 h-7 rounded" /> },
 ];
 
 export default function CheckoutModal({

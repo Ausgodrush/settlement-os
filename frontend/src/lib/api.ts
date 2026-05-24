@@ -97,7 +97,10 @@ export const auth = {
 
 export const deals = {
   list: (params?: { status?: DealStatus; search?: string; page?: number }) => {
-    const qs = new URLSearchParams(params as any).toString();
+    const defined = Object.fromEntries(
+      Object.entries(params ?? {}).filter(([, v]) => v !== undefined && v !== null && v !== ''),
+    );
+    const qs = new URLSearchParams(defined as any).toString();
     return request<PaginatedResponse<Deal>>(`/deals${qs ? `?${qs}` : ''}`);
   },
   get: (id: string) => request<Deal>(`/deals/${id}`),

@@ -6,9 +6,7 @@ import { getStoredUser, saveAuth } from '@/lib/auth';
 import { auth as authApi } from '@/lib/api';
 import { MOCK_LISTINGS } from '@/lib/mockListings';
 
-const IS_DEMO = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
-
-async function attemptDemoLogin(): Promise<void> {
+async function attemptLogin(): Promise<void> {
   const timeout = new Promise<never>((_, reject) =>
     setTimeout(() => reject(new Error('timeout')), 5000),
   );
@@ -16,7 +14,7 @@ async function attemptDemoLogin(): Promise<void> {
     const res = await Promise.race([authApi.login('admin@demo.com', 'demo1234'), timeout]);
     saveAuth(res as Awaited<ReturnType<typeof authApi.login>>);
   } catch {
-    // proceed anyway — dashboard will redirect to /login if needed
+    // proceed anyway — login page will handle unauthenticated state
   }
 }
 
@@ -31,12 +29,8 @@ export default function Home() {
   async function handleSignIn() {
     if (signingIn) return;
     setSigningIn(true);
-    if (IS_DEMO) {
-      await attemptDemoLogin();
-      router.push('/dashboard');
-    } else {
-      router.push('/login');
-    }
+    await attemptLogin();
+    router.push('/dashboard');
   }
 
   return (
@@ -56,30 +50,21 @@ export default function Home() {
           <Link href="/listings" className="text-sm text-gray-600 hover:text-indigo-600 font-medium transition-colors">
             Browse listings
           </Link>
-          {IS_DEMO ? (
-            <button
-              onClick={handleSignIn}
-              disabled={signingIn}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-60 transition-colors"
-            >
-              {signingIn
-                ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Opening…</>
-                : 'Sign in →'}
-            </button>
-          ) : (
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 active:bg-indigo-800 transition-colors"
-            >
-              Sign in →
-            </Link>
-          )}
+          <button
+            onClick={handleSignIn}
+            disabled={signingIn}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-60 transition-colors"
+          >
+            {signingIn
+              ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Opening…</>
+              : 'Sign in →'}
+          </button>
         </div>
       </nav>
 
       {/* Hero */}
       <div className="max-w-6xl mx-auto px-6 pt-12 pb-10 text-center">
-<h1 className="text-4xl font-bold text-gray-900 mb-4">
+        <h1 className="text-4xl font-bold text-gray-900 mb-4">
           Australian & Bali Property,<br />Coordinated.
         </h1>
         <p className="text-gray-500 text-lg max-w-xl mx-auto mb-8">
@@ -92,22 +77,13 @@ export default function Home() {
           >
             Browse all listings →
           </Link>
-          {IS_DEMO ? (
-            <button
-              onClick={handleSignIn}
-              disabled={signingIn}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-white text-gray-700 text-base font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
-            >
-              {signingIn ? 'Opening…' : 'Manage deals'}
-            </button>
-          ) : (
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-white text-gray-700 text-base font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
-            >
-              Manage deals
-            </Link>
-          )}
+          <button
+            onClick={handleSignIn}
+            disabled={signingIn}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-white text-gray-700 text-base font-medium rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-60 transition-colors"
+          >
+            {signingIn ? 'Opening…' : 'Manage deals'}
+          </button>
         </div>
       </div>
 
@@ -129,7 +105,6 @@ export default function Home() {
               href="/listings"
               className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden block hover:shadow-md hover:border-indigo-200 transition-all group"
             >
-              {/* Photo */}
               <div className="relative h-44 bg-gray-100 overflow-hidden">
                 <img
                   src={deal.imageUrl}
@@ -140,7 +115,6 @@ export default function Home() {
                 <span className="absolute top-3 left-3 text-xl">{deal.flag}</span>
               </div>
 
-              {/* Body */}
               <div className="p-5">
                 <div className="mb-3">
                   <p className="font-semibold text-gray-900 text-sm group-hover:text-indigo-600 transition-colors truncate">

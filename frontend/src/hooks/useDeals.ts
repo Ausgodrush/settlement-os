@@ -17,7 +17,7 @@ export function useDeals(initialStatus?: DealStatus) {
       const result = await dealsApi.list({ status, search: search || undefined });
       setData(result);
     } catch (e: any) {
-      setError(e.message);
+      if (e?.status !== 401) setError(e.message);
     } finally {
       setLoading(false);
     }

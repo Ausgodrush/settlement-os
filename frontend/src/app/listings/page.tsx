@@ -6,9 +6,7 @@ import { getStoredUser, saveAuth } from '@/lib/auth';
 import { auth as authApi } from '@/lib/api';
 import { MOCK_LISTINGS } from '@/lib/mockListings';
 
-const IS_DEMO = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
-
-async function attemptDemoLogin(): Promise<void> {
+async function attemptLogin(): Promise<void> {
   const timeout = new Promise<never>((_, reject) =>
     setTimeout(() => reject(new Error('timeout')), 5000),
   );
@@ -16,7 +14,7 @@ async function attemptDemoLogin(): Promise<void> {
     const res = await Promise.race([authApi.login('admin@demo.com', 'demo1234'), timeout]);
     saveAuth(res as Awaited<ReturnType<typeof authApi.login>>);
   } catch {
-    // proceed anyway
+    // proceed anyway — login page will handle unauthenticated state
   }
 }
 
@@ -31,12 +29,8 @@ export default function ListingsPage() {
   async function handleSignIn() {
     if (signingIn) return;
     setSigningIn(true);
-    if (IS_DEMO) {
-      await attemptDemoLogin();
-      router.push('/dashboard');
-    } else {
-      router.push('/login');
-    }
+    await attemptLogin();
+    router.push('/dashboard');
   }
 
   const isLoggedIn = typeof window !== 'undefined' && !!getStoredUser();
@@ -63,7 +57,7 @@ export default function ListingsPage() {
               >
                 Dashboard →
               </Link>
-            ) : IS_DEMO ? (
+            ) : (
               <button
                 onClick={handleSignIn}
                 disabled={signingIn}
@@ -73,13 +67,6 @@ export default function ListingsPage() {
                   ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Opening…</>
                   : 'Sign in →'}
               </button>
-            ) : (
-              <Link
-                href="/login"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
-              >
-                Sign in →
-              </Link>
             )}
           </div>
         </div>
@@ -125,9 +112,8 @@ export default function ListingsPage() {
           {MOCK_LISTINGS.map((deal) => (
             <div
               key={deal.id}
-              className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden block hover:shadow-md hover:border-indigo-200 transition-all group"
+              className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md hover:border-indigo-200 transition-all group"
             >
-              {/* Photo */}
               <div className="relative h-44 bg-gray-100 overflow-hidden">
                 <img
                   src={deal.imageUrl}
@@ -138,7 +124,6 @@ export default function ListingsPage() {
                 <span className="absolute top-3 left-3 text-xl">{deal.flag}</span>
               </div>
 
-              {/* Body */}
               <div className="p-5">
                 <div className="mb-3">
                   <p className="font-semibold text-gray-900 text-sm group-hover:text-indigo-600 transition-colors truncate">

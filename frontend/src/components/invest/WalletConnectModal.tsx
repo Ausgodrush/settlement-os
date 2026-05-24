@@ -1,7 +1,8 @@
 'use client';
-import { useState } from 'react';
-import { CryptoSymbol, CRYPTO_NAMES, CRYPTO_SYMBOLS, CRYPTO_PRICES } from '@/lib/investData';
+import React, { useState } from 'react';
+import { CryptoSymbol, CRYPTO_SYMBOLS, CRYPTO_PRICES } from '@/lib/investData';
 import { WalletState } from '@/lib/investStore';
+import { MetaMaskIcon, PhantomIcon, WalletConnectIcon } from './PaymentIcons';
 
 interface Props {
   onConnect: (type: WalletState['type'], crypto: CryptoSymbol) => Promise<void>;
@@ -9,10 +10,10 @@ interface Props {
   connecting: boolean;
 }
 
-const WALLETS: { type: WalletState['type']; label: string; color: string; icon: string }[] = [
-  { type: 'METAMASK', label: 'MetaMask', color: 'bg-orange-500', icon: '🦊' },
-  { type: 'PHANTOM', label: 'Phantom', color: 'bg-purple-600', icon: '👻' },
-  { type: 'WALLETCONNECT', label: 'WalletConnect', color: 'bg-blue-500', icon: '🔗' },
+const WALLETS: { type: WalletState['type']; label: string; icon: React.ReactNode }[] = [
+  { type: 'METAMASK', label: 'MetaMask', icon: <MetaMaskIcon className="w-8 h-8" /> },
+  { type: 'PHANTOM', label: 'Phantom', icon: <PhantomIcon className="w-8 h-8" /> },
+  { type: 'WALLETCONNECT', label: 'WalletConnect', icon: <WalletConnectIcon className="w-8 h-8" /> },
 ];
 
 const CRYPTOS: CryptoSymbol[] = ['BTC', 'ETH', 'SOL'];
@@ -75,7 +76,7 @@ export default function WalletConnectModal({ onConnect, onClose, connecting }: P
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
-                  <span className="text-2xl">{w.icon}</span>
+                  {w.icon}
                   <span className="font-medium text-gray-900">{w.label}</span>
                   {selectedWallet === w.type && (
                     <svg className="w-4 h-4 text-indigo-600 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">

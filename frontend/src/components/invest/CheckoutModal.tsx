@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
   InvestPool,
   PLATFORM_FEE_RATE,
@@ -13,6 +13,7 @@ import {
 } from '@/lib/investData';
 import { WalletState } from '@/lib/investStore';
 import WalletConnectModal from './WalletConnectModal';
+import { VisaIcon, MastercardIcon, PayPalIcon } from './PaymentIcons';
 
 interface Props {
   pool: InvestPool;
@@ -24,12 +25,12 @@ interface Props {
   onClose: () => void;
 }
 
-const METHODS: { id: PaymentMethod; label: string; icon: string }[] = [
-  { id: 'VISA', label: 'Visa', icon: '💳' },
-  { id: 'MASTERCARD', label: 'Mastercard', icon: '💳' },
-  { id: 'PAYPAL', label: 'PayPal', icon: '🅿️' },
-  { id: 'CRYPTO', label: 'Crypto', icon: '₿' },
-  { id: 'BANK', label: 'Bank Transfer', icon: '🏦' },
+const METHODS: { id: PaymentMethod; label: string; icon: React.ReactNode }[] = [
+  { id: 'VISA', label: 'Visa', icon: <VisaIcon className="w-10 h-7 rounded" /> },
+  { id: 'MASTERCARD', label: 'Mastercard', icon: <MastercardIcon className="w-10 h-7 rounded" /> },
+  { id: 'PAYPAL', label: 'PayPal', icon: <PayPalIcon className="w-10 h-7 rounded" /> },
+  { id: 'CRYPTO', label: 'Crypto', icon: <span className="text-xl">₿</span> },
+  { id: 'BANK', label: 'Bank', icon: <span className="text-xl">🏦</span> },
 ];
 
 export default function CheckoutModal({
@@ -173,7 +174,7 @@ export default function CheckoutModal({
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <span className="text-lg">{m.icon}</span>
+                    <div className="flex items-center justify-center">{m.icon}</div>
                     <span className="text-[9px] font-medium text-gray-700 mt-0.5 text-center leading-tight">{m.label}</span>
                   </button>
                 ))}

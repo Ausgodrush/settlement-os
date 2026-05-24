@@ -94,7 +94,7 @@ export default function Home() {
             Featured listings
           </h2>
           <Link href="/listings" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
-            View all {MOCK_LISTINGS.length} →
+            View all →
           </Link>
         </div>
 

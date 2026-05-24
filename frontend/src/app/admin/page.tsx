@@ -7,16 +7,17 @@ import { getPools, getPlatformFees, savePools, resetPools } from '@/lib/investSt
 import { MOCK_POOLS, InvestPool, OWNER_WALLETS, CRYPTO_PRICES, CRYPTO_SYMBOLS, CryptoSymbol } from '@/lib/investData';
 
 export default function AdminPage() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
   const [pools, setPools] = useState<InvestPool[]>([]);
   const [fees, setFees] = useState(0);
   const [resetDone, setResetDone] = useState(false);
 
   useEffect(() => {
+    if (loading) return;
     if (user === null) { router.replace('/login'); return; }
-    if (user && user.role !== 'ADMIN') { router.replace('/dashboard'); return; }
-  }, [user, router]);
+    if (user.role !== 'ADMIN') { router.replace('/dashboard'); return; }
+  }, [loading, user, router]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -25,7 +26,7 @@ export default function AdminPage() {
     }
   }, []);
 
-  if (!user || user.role !== 'ADMIN') return null;
+  if (loading || !user || user.role !== 'ADMIN') return null;
 
   const openPools = pools.filter((p) => p.status === 'OPEN');
   const fundedPools = pools.filter((p) => p.status === 'FUNDED');

@@ -14,16 +14,16 @@ import {
 import Link from 'next/link';
 
 export default function PortfolioPage() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
   const { portfolio, totalInvested, totalFees, projectedAnnual } = usePortfolio();
   const [cryptoView, setCryptoView] = useState<CryptoSymbol>('ETH');
 
   useEffect(() => {
-    if (user === null) router.replace('/login');
-  }, [user, router]);
+    if (!loading && user === null) router.replace('/login');
+  }, [loading, user, router]);
 
-  if (!user) return null;
+  if (loading || !user) return null;
 
   const totalCrypto = cryptoEquiv(totalInvested, cryptoView);
 

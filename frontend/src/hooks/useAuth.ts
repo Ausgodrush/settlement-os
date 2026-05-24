@@ -32,7 +32,7 @@ export function useAuth() {
     clearAuth();
     disconnectSocket();
     setUser(null);
-    router.push('/login');
+    router.push('/');
   }, [router]);
 
   return { user, loading, login, logout, isLoggedIn: !!user };

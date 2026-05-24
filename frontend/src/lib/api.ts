@@ -47,7 +47,6 @@ async function request<T>(
     token = await refreshAccessToken();
     if (!token) {
       clearAuth();
-      if (typeof window !== 'undefined') window.location.href = '/login';
       throw new ApiError(401, 'Session expired');
     }
   }
@@ -66,7 +65,6 @@ async function request<T>(
     const newToken = await refreshAccessToken();
     if (newToken) return request<T>(path, options, false);
     clearAuth();
-    if (typeof window !== 'undefined') window.location.href = '/login';
     throw new ApiError(401, 'Session expired');
   }
 

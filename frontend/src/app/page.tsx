@@ -37,7 +37,7 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50">
       {/* Navbar */}
       <nav className="px-6 py-4 flex items-center justify-between max-w-6xl mx-auto">
-        <div className="flex items-center gap-2">
+        <Link href="/listings" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
             <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -45,7 +45,7 @@ export default function Home() {
             </svg>
           </div>
           <span className="font-bold text-gray-900">Settlement OS</span>
-        </div>
+        </Link>
         <div className="flex items-center gap-3">
           <Link href="/listings" className="text-sm text-gray-600 hover:text-indigo-600 font-medium transition-colors">
             Browse listings

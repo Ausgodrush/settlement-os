@@ -21,13 +21,8 @@ export default function ListingsPage() {
   const { invest } = usePortfolio();
   const { wallet, connecting, connect, disconnect } = useWallet();
 
-  const [pickerCountry, setPickerCountry] = useState<'AU' | 'ID' | null>(null);
   const [selectedPool, setSelectedPool] = useState<InvestPool | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-
-  const pickerPools = pickerCountry
-    ? pools.filter((p) => p.country === pickerCountry && p.status === 'OPEN')
-    : [];
 
   const handleConfirm = useCallback(
     (amount: number, method: PaymentMethod, crypto: CryptoSymbol | null) => {
@@ -94,10 +89,8 @@ export default function ListingsPage() {
         {/* Grid */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
           {MOCK_LISTINGS.map((deal) => {
-            const openPools = pools.filter(
-              (p) => p.country === deal.country && p.status === 'OPEN',
-            );
-            const hasOpenPools = openPools.length > 0;
+            const listingPool = deal.poolId ? pools.find((p) => p.id === deal.poolId) : null;
+            const hasOpenPools = listingPool?.status === 'OPEN';
 
             return (
               <div
@@ -171,9 +164,9 @@ export default function ListingsPage() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {hasOpenPools && (
+                      {hasOpenPools && listingPool && (
                         <button
-                          onClick={() => setPickerCountry(deal.country as 'AU' | 'ID')}
+                          onClick={() => setSelectedPool(listingPool)}
                           className="text-xs px-2.5 py-1 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-1"
                         >
                           <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -204,68 +197,6 @@ export default function ListingsPage() {
           </p>
         )}
       </main>
-
-      {/* Pool picker modal */}
-      {pickerCountry && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">Choose a Pool</h2>
-                <p className="text-sm text-gray-500 mt-0.5">
-                  {pickerCountry === 'AU' ? '🇦🇺 Australian' : '🇮🇩 Bali'} open investment pools
-                </p>
-              </div>
-              <button
-                onClick={() => setPickerCountry(null)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="p-4 space-y-3 max-h-[60vh] overflow-y-auto">
-              {pickerPools.length === 0 ? (
-                <p className="text-center text-gray-400 py-10">No open pools for this region</p>
-              ) : (
-                pickerPools.map((pool) => {
-                  const pct = Math.min(Math.round((pool.amountRaised / pool.targetRaise) * 100), 100);
-                  return (
-                    <button
-                      key={pool.id}
-                      onClick={() => { setSelectedPool(pool); setPickerCountry(null); }}
-                      className="w-full text-left p-4 rounded-xl border-2 border-gray-100 hover:border-indigo-300 hover:bg-indigo-50 transition-all group"
-                    >
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div className="min-w-0">
-                          <p className="font-semibold text-gray-900 text-sm group-hover:text-indigo-700 truncate">
-                            {pool.name}
-                          </p>
-                          <p className="text-xs text-gray-400 mt-0.5">{pool.location} · {pool.propertyType}</p>
-                        </div>
-                        <span className="flex-shrink-0 text-sm font-bold text-green-600">{pool.expectedYield}% p.a.</span>
-                      </div>
-
-                      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden mb-2">
-                        <div className="h-full bg-green-500 rounded-full" style={{ width: `${pct}%` }} />
-                      </div>
-
-                      <div className="flex items-center justify-between text-xs text-gray-400">
-                        <span>{pct}% funded · {pool.investorCount}/{pool.maxInvestors} investors</span>
-                        <span className="font-medium text-gray-600">
-                          Min ${pool.minInvestment.toLocaleString('en-AU')} AUD
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {selectedPool && (
         <CheckoutModal

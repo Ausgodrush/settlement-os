@@ -1,7 +1,9 @@
+// poolId links each listing to its specific InvestPool in investData.ts (null = no pool)
 export const MOCK_LISTINGS = [
   // ── Australian properties ───────────────────────────────────────────────
   {
     id: 'au-001',
+    poolId: 'p5',
     referenceNo: 'AU-001',
     propertyAddress: '42 Prospect Street',
     suburb: 'Prospect SA 5082, Australia',
@@ -27,6 +29,7 @@ export const MOCK_LISTINGS = [
   },
   {
     id: 'au-002',
+    poolId: 'p4',
     referenceNo: 'AU-002',
     propertyAddress: '15 King William Road',
     suburb: 'Unley SA 5061, Australia',
@@ -52,6 +55,7 @@ export const MOCK_LISTINGS = [
   },
   {
     id: 'au-003',
+    poolId: null,
     referenceNo: 'AU-003',
     propertyAddress: '8 Greenhill Road',
     suburb: 'Tusmore SA 5065, Australia',
@@ -77,6 +81,7 @@ export const MOCK_LISTINGS = [
   },
   {
     id: 'au-004',
+    poolId: 'p1',
     referenceNo: 'AU-004',
     propertyAddress: '3 Moseley Square',
     suburb: 'Glenelg SA 5045, Australia',
@@ -103,6 +108,7 @@ export const MOCK_LISTINGS = [
   // ── Bali properties ─────────────────────────────────────────────────────
   {
     id: 'bali-001',
+    poolId: 'p8',
     referenceNo: 'BALI-001',
     propertyAddress: 'Villa Karang Sunset',
     suburb: 'Seminyak, Bali, Indonesia',
@@ -128,6 +134,7 @@ export const MOCK_LISTINGS = [
   },
   {
     id: 'bali-002',
+    poolId: 'p7',
     referenceNo: 'BALI-002',
     propertyAddress: 'The Layar Private Estate',
     suburb: 'Canggu, Bali, Indonesia',
@@ -153,6 +160,7 @@ export const MOCK_LISTINGS = [
   },
   {
     id: 'bali-003',
+    poolId: null,
     referenceNo: 'BALI-003',
     propertyAddress: 'Cliff Edge Villa Uluwatu',
     suburb: 'Uluwatu, Bali, Indonesia',
@@ -178,6 +186,7 @@ export const MOCK_LISTINGS = [
   },
   {
     id: 'bali-004',
+    poolId: 'p9',
     referenceNo: 'BALI-004',
     propertyAddress: 'Jungle Retreat Ubud',
     suburb: 'Ubud, Bali, Indonesia',
@@ -203,6 +212,7 @@ export const MOCK_LISTINGS = [
   },
   {
     id: 'bali-005',
+    poolId: null,
     referenceNo: 'BALI-005',
     propertyAddress: 'Nusa Dua Beachfront Villa',
     suburb: 'Nusa Dua, Bali, Indonesia',
@@ -228,6 +238,7 @@ export const MOCK_LISTINGS = [
   },
   {
     id: 'bali-006',
+    poolId: null,
     referenceNo: 'BALI-006',
     propertyAddress: 'Sanur Sunrise Residence',
     suburb: 'Sanur, Bali, Indonesia',

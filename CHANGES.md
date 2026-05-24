@@ -4,6 +4,40 @@ All changes are listed newest-first. Each entry shows what was changed, what was
 
 ---
 
+## 2026-05-25 — Investment pools, crypto wallet, portfolio, admin panel
+
+### Summary
+Integrated all investment features from `demo/index.html` into the Next.js app as proper pages and components. No real payment processing — demo only.
+
+### New files
+
+| File | Purpose |
+|---|---|
+| `src/lib/investData.ts` | 10 MOCK_POOLS, crypto constants (BTC/ETH/SOL prices), owner wallets, types |
+| `src/lib/investStore.ts` | localStorage-backed state: pools, portfolio, wallet, platform fees |
+| `src/hooks/useWallet.ts` | Wallet connection hook (MetaMask/Phantom/WalletConnect — mock) |
+| `src/hooks/usePortfolio.ts` | Portfolio state + `usePools` hook |
+| `src/components/invest/WalletConnectModal.tsx` | Wallet + crypto selection modal |
+| `src/components/invest/CheckoutModal.tsx` | 5-method payment modal (Visa/MC/PayPal/Crypto/Bank) with fee summary |
+| `src/app/invest/page.tsx` | Browse investment pools, filter by country/status, invest button |
+| `src/app/portfolio/page.tsx` | Holdings list, crypto-equivalent view, projected returns (auth required) |
+| `src/app/admin/page.tsx` | Platform revenue, trust wallet addresses, pool open/close controls (ADMIN only) |
+
+### Modified files
+
+- `src/components/layout/Sidebar.tsx` — Added **Invest** (public), **Portfolio** (auth), **Admin** (ADMIN role) nav items
+
+### Business logic
+- Platform fee: 2% on every investment (taken from investment amount, net goes to pool)
+- Pool auto-status: `OPEN` → `FUNDED` when `amountRaised >= targetRaise`
+- Crypto: BTC/ETH/SOL at fixed demo prices; `cryptoEquiv(aud, crypto)` converts AUD
+- All state in localStorage; resets if localStorage is cleared
+
+### To revert
+Delete the 9 new files and revert `Sidebar.tsx` to remove the 3 new nav items.
+
+---
+
 ## 2026-05-25 — Demo wrapper removed, code cleaned up
 
 ### Summary

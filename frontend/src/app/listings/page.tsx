@@ -1,8 +1,14 @@
 'use client';
+import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/layout/Sidebar';
+import CheckoutModal from '@/components/invest/CheckoutModal';
 import { getStoredUser } from '@/lib/auth';
 import { MOCK_LISTINGS } from '@/lib/mockListings';
+import { InvestPool, CryptoSymbol, PaymentMethod } from '@/lib/investData';
+import { usePools } from '@/hooks/usePortfolio';
+import { usePortfolio } from '@/hooks/usePortfolio';
+import { useWallet } from '@/hooks/useWallet';
 
 export default function ListingsPage() {
   const totalValue = MOCK_LISTINGS.reduce((s, d) => s + d.purchasePrice, 0);
@@ -10,6 +16,31 @@ export default function ListingsPage() {
   const settledCount = MOCK_LISTINGS.filter((d) => d.settled).length;
 
   const isLoggedIn = typeof window !== 'undefined' && !!getStoredUser();
+
+  const { pools, refresh } = usePools();
+  const { invest } = usePortfolio();
+  const { wallet, connecting, connect, disconnect } = useWallet();
+
+  const [pickerCountry, setPickerCountry] = useState<'AU' | 'ID' | null>(null);
+  const [selectedPool, setSelectedPool] = useState<InvestPool | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  const pickerPools = pickerCountry
+    ? pools.filter((p) => p.country === pickerCountry && p.status === 'OPEN')
+    : [];
+
+  const handleConfirm = useCallback(
+    (amount: number, method: PaymentMethod, crypto: CryptoSymbol | null) => {
+      if (!selectedPool) return;
+      const result = invest(selectedPool, amount, method, crypto);
+      refresh();
+      setSuccessMsg(
+        `Invested $${amount.toLocaleString('en-AU')} AUD in ${selectedPool.name}. Fee: $${result.holding.feePaid.toFixed(2)}.`,
+      );
+      setSelectedPool(null);
+    },
+    [selectedPool, invest, refresh],
+  );
 
   return (
     <div className="flex min-h-screen">
@@ -32,6 +63,16 @@ export default function ListingsPage() {
           )}
         </div>
 
+        {successMsg && (
+          <div className="mb-5 flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-xl text-sm text-green-800">
+            <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            {successMsg}
+            <button onClick={() => setSuccessMsg(null)} className="ml-auto text-green-600 hover:text-green-800">✕</button>
+          </div>
+        )}
+
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
@@ -52,88 +93,109 @@ export default function ListingsPage() {
 
         {/* Grid */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
-          {MOCK_LISTINGS.map((deal) => (
-            <div
-              key={deal.id}
-              className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md hover:border-indigo-200 transition-all group"
-            >
-              <div className="relative h-44 bg-gray-100 overflow-hidden">
-                <img
-                  src={deal.imageUrl}
-                  alt={deal.propertyAddress}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  loading="lazy"
-                />
-                <span className="absolute top-3 left-3 text-xl">{deal.flag}</span>
-              </div>
+          {MOCK_LISTINGS.map((deal) => {
+            const openPools = pools.filter(
+              (p) => p.country === deal.country && p.status === 'OPEN',
+            );
+            const hasOpenPools = openPools.length > 0;
 
-              <div className="p-5">
-                <div className="mb-3">
-                  <p className="font-semibold text-gray-900 text-sm group-hover:text-indigo-600 transition-colors truncate">
-                    {deal.propertyAddress}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-0.5">{deal.suburb}</p>
-                  <p className="text-xs text-gray-300 mt-0.5">{deal.type} · {deal.titleRef}</p>
+            return (
+              <div
+                key={deal.id}
+                className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md hover:border-indigo-200 transition-all group"
+              >
+                <div className="relative h-44 bg-gray-100 overflow-hidden">
+                  <img
+                    src={deal.imageUrl}
+                    alt={deal.propertyAddress}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
+                  />
+                  <span className="absolute top-3 left-3 text-xl">{deal.flag}</span>
                 </div>
 
-                <div className="flex items-center justify-between text-sm mb-3">
-                  <span className="font-semibold text-gray-800">
-                    ${deal.purchasePrice.toLocaleString('en-AU')} {deal.currency}
-                  </span>
-                  {deal.settled ? (
-                    <span className="text-xs text-green-600 font-medium">✓ Settled {deal.settlementDate}</span>
-                  ) : (
-                    <span className={`text-xs flex items-center gap-1 ${
-                      deal.daysToSettle <= 14 ? 'text-red-600 font-medium' : 'text-gray-500'
-                    }`}>
-                      {deal.daysToSettle <= 14 && <span className="w-1.5 h-1.5 bg-red-500 rounded-full" />}
-                      {deal.daysToSettle}d to settle · {deal.settlementDate}
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2 mb-3 text-xs text-gray-400">
-                  <span>Deposit {deal.deposit}</span>
-                  {deal.depositPaid && <span className="text-green-600 font-medium">✓ Paid</span>}
-                </div>
-
-                {deal.conditionsTotal > 0 && (
+                <div className="p-5">
                   <div className="mb-3">
-                    <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
-                      <span>Conditions</span>
-                      <span>{deal.conditionsMet}/{deal.conditionsTotal} met</span>
-                    </div>
-                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-green-500 rounded-full"
-                        style={{ width: `${Math.round((deal.conditionsMet / deal.conditionsTotal) * 100)}%` }}
-                      />
-                    </div>
+                    <p className="font-semibold text-gray-900 text-sm group-hover:text-indigo-600 transition-colors truncate">
+                      {deal.propertyAddress}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">{deal.suburb}</p>
+                    <p className="text-xs text-gray-300 mt-0.5">{deal.type} · {deal.titleRef}</p>
                   </div>
-                )}
 
-                <p className="text-xs text-gray-400 mb-3 line-clamp-1">{deal.notes}</p>
+                  <div className="flex items-center justify-between text-sm mb-3">
+                    <span className="font-semibold text-gray-800">
+                      ${deal.purchasePrice.toLocaleString('en-AU')} {deal.currency}
+                    </span>
+                    {deal.settled ? (
+                      <span className="text-xs text-green-600 font-medium">✓ Settled {deal.settlementDate}</span>
+                    ) : (
+                      <span className={`text-xs flex items-center gap-1 ${
+                        deal.daysToSettle <= 14 ? 'text-red-600 font-medium' : 'text-gray-500'
+                      }`}>
+                        {deal.daysToSettle <= 14 && <span className="w-1.5 h-1.5 bg-red-500 rounded-full" />}
+                        {deal.daysToSettle}d to settle · {deal.settlementDate}
+                      </span>
+                    )}
+                  </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex -space-x-1">
-                    {deal.parties.map((initial, i) => (
-                      <div key={i} className="w-6 h-6 rounded-full bg-indigo-100 border-2 border-white flex items-center justify-center">
-                        <span className="text-[9px] font-semibold text-indigo-600">{initial}</span>
+                  <div className="flex items-center gap-2 mb-3 text-xs text-gray-400">
+                    <span>Deposit {deal.deposit}</span>
+                    {deal.depositPaid && <span className="text-green-600 font-medium">✓ Paid</span>}
+                  </div>
+
+                  {deal.conditionsTotal > 0 && (
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
+                        <span>Conditions</span>
+                        <span>{deal.conditionsMet}/{deal.conditionsTotal} met</span>
                       </div>
-                    ))}
-                  </div>
-                  {isLoggedIn && (
-                    <Link
-                      href={`/deals/${deal.id}`}
-                      className="text-xs text-indigo-500 hover:text-indigo-700 font-medium transition-colors"
-                    >
-                      Open →
-                    </Link>
+                      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-green-500 rounded-full"
+                          style={{ width: `${Math.round((deal.conditionsMet / deal.conditionsTotal) * 100)}%` }}
+                        />
+                      </div>
+                    </div>
                   )}
+
+                  <p className="text-xs text-gray-400 mb-3 line-clamp-1">{deal.notes}</p>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex -space-x-1">
+                      {deal.parties.map((initial, i) => (
+                        <div key={i} className="w-6 h-6 rounded-full bg-indigo-100 border-2 border-white flex items-center justify-center">
+                          <span className="text-[9px] font-semibold text-indigo-600">{initial}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {hasOpenPools && (
+                        <button
+                          onClick={() => setPickerCountry(deal.country as 'AU' | 'ID')}
+                          className="text-xs px-2.5 py-1 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-1"
+                        >
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                          </svg>
+                          Invest
+                        </button>
+                      )}
+                      {isLoggedIn && (
+                        <Link
+                          href={`/deals/${deal.id}`}
+                          className="text-xs text-indigo-500 hover:text-indigo-700 font-medium transition-colors"
+                        >
+                          Open →
+                        </Link>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {isLoggedIn && (
@@ -142,6 +204,80 @@ export default function ListingsPage() {
           </p>
         )}
       </main>
+
+      {/* Pool picker modal */}
+      {pickerCountry && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Choose a Pool</h2>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  {pickerCountry === 'AU' ? '🇦🇺 Australian' : '🇮🇩 Bali'} open investment pools
+                </p>
+              </div>
+              <button
+                onClick={() => setPickerCountry(null)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-4 space-y-3 max-h-[60vh] overflow-y-auto">
+              {pickerPools.length === 0 ? (
+                <p className="text-center text-gray-400 py-10">No open pools for this region</p>
+              ) : (
+                pickerPools.map((pool) => {
+                  const pct = Math.min(Math.round((pool.amountRaised / pool.targetRaise) * 100), 100);
+                  return (
+                    <button
+                      key={pool.id}
+                      onClick={() => { setSelectedPool(pool); setPickerCountry(null); }}
+                      className="w-full text-left p-4 rounded-xl border-2 border-gray-100 hover:border-indigo-300 hover:bg-indigo-50 transition-all group"
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-gray-900 text-sm group-hover:text-indigo-700 truncate">
+                            {pool.name}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-0.5">{pool.location} · {pool.propertyType}</p>
+                        </div>
+                        <span className="flex-shrink-0 text-sm font-bold text-green-600">{pool.expectedYield}% p.a.</span>
+                      </div>
+
+                      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden mb-2">
+                        <div className="h-full bg-green-500 rounded-full" style={{ width: `${pct}%` }} />
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs text-gray-400">
+                        <span>{pct}% funded · {pool.investorCount}/{pool.maxInvestors} investors</span>
+                        <span className="font-medium text-gray-600">
+                          Min ${pool.minInvestment.toLocaleString('en-AU')} AUD
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedPool && (
+        <CheckoutModal
+          pool={selectedPool}
+          walletState={wallet}
+          connecting={connecting}
+          onConnect={connect}
+          onDisconnect={disconnect}
+          onConfirm={handleConfirm}
+          onClose={() => setSelectedPool(null)}
+        />
+      )}
     </div>
   );
 }

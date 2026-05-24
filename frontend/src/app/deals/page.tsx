@@ -82,7 +82,7 @@ export default function DealsPage() {
           <div className="card p-12 text-center">
             <p className="text-gray-500">No deals found.</p>
             <Link href="/deals/new" className="btn-primary mt-4 inline-flex">
-              Create a deal
+              Create new
             </Link>
           </div>
         ) : (

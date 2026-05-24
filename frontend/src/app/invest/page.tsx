@@ -13,13 +13,12 @@ export default function InvestPage() {
   const { invest } = usePortfolio();
   const [selectedPool, setSelectedPool] = useState<InvestPool | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'ALL' | 'AU' | 'ID' | 'OPEN' | 'FUNDED'>('ALL');
+  const [filter, setFilter] = useState<'ALL' | 'AU' | 'ID' | 'OPEN'>('ALL');
 
   const filtered = pools.filter((p) => {
     if (filter === 'AU') return p.country === 'AU';
     if (filter === 'ID') return p.country === 'ID';
     if (filter === 'OPEN') return p.status === 'OPEN';
-    if (filter === 'FUNDED') return p.status === 'FUNDED';
     return true;
   });
 
@@ -83,7 +82,7 @@ export default function InvestPage() {
 
         {/* Filter tabs */}
         <div className="flex gap-2 mb-5 flex-wrap">
-          {(['ALL', 'OPEN', 'FUNDED', 'AU', 'ID'] as const).map((f) => (
+          {(['ALL', 'OPEN', 'AU', 'ID'] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -93,7 +92,7 @@ export default function InvestPage() {
                   : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300'
               }`}
             >
-              {f === 'ALL' ? 'All pools' : f === 'OPEN' ? 'Open' : f === 'FUNDED' ? 'Funded' : f === 'AU' ? '🇦🇺 Australia' : '🇮🇩 Bali'}
+              {f === 'ALL' ? 'All pools' : f === 'OPEN' ? 'Open' : f === 'AU' ? '🇦🇺 Australia' : '🇮🇩 Bali'}
             </button>
           ))}
         </div>

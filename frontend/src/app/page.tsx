@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { saveAuth } from '@/lib/auth';
 import { auth as authApi } from '@/lib/api';
 import { MOCK_LISTINGS } from '@/lib/mockListings';
+import ListingImageCarousel from '@/components/listings/ListingImageCarousel';
 
 async function attemptLogin(): Promise<void> {
   const timeout = new Promise<never>((_, reject) =>
@@ -167,15 +168,7 @@ export default function Home() {
               href="/listings"
               className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden block hover:shadow-md hover:border-indigo-200 transition-all group"
             >
-              <div className="relative h-44 bg-gray-100 overflow-hidden">
-                <img
-                  src={deal.imageUrl}
-                  alt={deal.propertyAddress}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  loading="lazy"
-                />
-                <span className="absolute top-3 left-3 text-xl">{deal.flag}</span>
-              </div>
+              <ListingImageCarousel images={deal.images} alt={deal.propertyAddress} flag={deal.flag} />
 
               <div className="p-5">
                 <div className="mb-3">

@@ -25,7 +25,12 @@ export const MOCK_LISTINGS = [
     type: '4BR House',
     notes: 'Finance and inspections cleared. Awaiting Section 7 certificate.',
     flag: '🇦🇺',
-    imageUrl: 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=600&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=800&q=80',
+    ],
   },
   {
     id: 'au-002',
@@ -51,7 +56,12 @@ export const MOCK_LISTINGS = [
     type: '5BR Heritage Home',
     notes: 'High-value property. Finance condition expires 30 May.',
     flag: '🇦🇺',
-    imageUrl: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=600&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1505873242700-f289a29e1724?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1560185007-c5ca9d2c014d?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1600210492493-0946911123ea?auto=format&fit=crop&w=800&q=80',
+    ],
   },
   {
     id: 'au-003',
@@ -77,7 +87,11 @@ export const MOCK_LISTINGS = [
     type: '4BR Executive',
     notes: 'Settlement completed via PEXA on 25 Apr 2026.',
     flag: '🇦🇺',
-    imageUrl: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&fit=crop&w=600&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80',
+    ],
   },
   {
     id: 'au-004',
@@ -103,7 +117,12 @@ export const MOCK_LISTINGS = [
     type: '4BR Beachside',
     notes: 'Coastal property 150m from beach. Strata plan lodged. PEXA workspace open.',
     flag: '🇦🇺',
-    imageUrl: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=600&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=80',
+    ],
   },
   // ── Bali properties ─────────────────────────────────────────────────────
   {
@@ -130,7 +149,11 @@ export const MOCK_LISTINGS = [
     type: '3BR Private Villa',
     notes: 'Leasehold 25yr + 25yr. Notarial deed lodged with PPAT. Pool & tropical garden.',
     flag: '🇮🇩',
-    imageUrl: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=600&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1596701062351-8ac031b18a13?auto=format&fit=crop&w=800&q=80',
+    ],
   },
   {
     id: 'bali-002',
@@ -156,7 +179,12 @@ export const MOCK_LISTINGS = [
     type: '5BR Luxury Estate',
     notes: 'Freehold Hak Milik via Indonesian nominee. Infinity pool, 2,400m² land.',
     flag: '🇮🇩',
-    imageUrl: 'https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=600&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1615460549969-36fa19521a4f?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1596701062351-8ac031b18a13?auto=format&fit=crop&w=800&q=80',
+    ],
   },
   {
     id: 'bali-003',
@@ -182,7 +210,11 @@ export const MOCK_LISTINGS = [
     type: '3BR Ocean-View Villa',
     notes: 'Leasehold 30yr. Title transferred and registered. Direct ocean view.',
     flag: '🇮🇩',
-    imageUrl: 'https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?auto=format&fit=crop&w=600&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=800&q=80',
+    ],
   },
   {
     id: 'bali-004',
@@ -208,7 +240,11 @@ export const MOCK_LISTINGS = [
     type: '2BR Jungle Villa',
     notes: 'Leasehold 30yr. Rice terrace views. Surrounded by tropical forest.',
     flag: '🇮🇩',
-    imageUrl: 'https://images.unsplash.com/photo-1555400038-63f5ba517a47?auto=format&fit=crop&w=600&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1555400038-63f5ba517a47?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1562790351-d273a961e0e9?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=800&q=80',
+    ],
   },
   {
     id: 'bali-005',
@@ -234,7 +270,12 @@ export const MOCK_LISTINGS = [
     type: '6BR Beachfront Estate',
     notes: 'Direct beachfront. Hak Milik title. 4,000m² land with private beach access.',
     flag: '🇮🇩',
-    imageUrl: 'https://images.unsplash.com/photo-1615460549969-36fa19521a4f?auto=format&fit=crop&w=600&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1615460549969-36fa19521a4f?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=800&q=80',
+    ],
   },
   {
     id: 'bali-006',
@@ -260,6 +301,10 @@ export const MOCK_LISTINGS = [
     type: '3BR Garden Villa',
     notes: 'Leasehold 25yr. 800m to beach. Settlement completed.',
     flag: '🇮🇩',
-    imageUrl: 'https://images.unsplash.com/photo-1562790351-d273a961e0e9?auto=format&fit=crop&w=600&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1562790351-d273a961e0e9?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1555400038-63f5ba517a47?auto=format&fit=crop&w=800&q=80',
+    ],
   },
 ];

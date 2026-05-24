@@ -1,8 +1,8 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getStoredUser, saveAuth } from '@/lib/auth';
+import { saveAuth } from '@/lib/auth';
 import { auth as authApi } from '@/lib/api';
 import { MOCK_LISTINGS } from '@/lib/mockListings';
 
@@ -22,9 +22,6 @@ export default function Home() {
   const router = useRouter();
   const [signingIn, setSigningIn] = useState(false);
 
-  useEffect(() => {
-    if (getStoredUser()) router.replace('/dashboard');
-  }, [router]);
 
   async function handleSignIn() {
     if (signingIn) return;

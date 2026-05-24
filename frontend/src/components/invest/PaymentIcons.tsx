@@ -48,20 +48,55 @@ export function MetaMaskIcon({ className }: { className?: string }) {
 
 export function VisaIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 60 38" xmlns="http://www.w3.org/2000/svg">
-      <rect width="60" height="38" rx="4" fill="#1A1F71"/>
-      <text x="7" y="27" fontFamily="Arial, Helvetica, sans-serif" fontSize="20" fontStyle="italic" fontWeight="900" fill="white" letterSpacing="1">VISA</text>
+    <svg className={className} viewBox="0 0 60 38" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Visa">
+      <defs>
+        <clipPath id="visa-clip">
+          <rect width="60" height="38" rx="4"/>
+        </clipPath>
+      </defs>
+      <rect width="60" height="38" rx="4" fill="white"/>
+      {/* Gold bottom stripe clipped to card shape */}
+      <rect y="32" width="60" height="6" fill="#F7B600" clipPath="url(#visa-clip)"/>
+      {/* Border drawn last so it sits on top */}
+      <rect width="60" height="38" rx="4" fill="none" stroke="#D0D0D0" strokeWidth="0.75"/>
+      {/* VISA wordmark — navy italic bold */}
+      <text
+        x="30" y="20"
+        dominantBaseline="middle"
+        textAnchor="middle"
+        fontFamily="'Helvetica Neue', Helvetica, Arial, sans-serif"
+        fontSize="22"
+        fontStyle="italic"
+        fontWeight="900"
+        fill="#1A1F71"
+        letterSpacing="-0.5"
+      >VISA</text>
     </svg>
   );
 }
 
 export function MastercardIcon({ className }: { className?: string }) {
+  /* Circles r=11, centers (22,17) and (38,17), d=16
+     Intersection x=30, y=17±√57≈±7.55 → (30,9.45) and (30,24.55) */
   return (
-    <svg className={className} viewBox="0 0 60 38" xmlns="http://www.w3.org/2000/svg">
-      <rect width="60" height="38" rx="4" fill="#1D1D1D"/>
-      <circle cx="22" cy="19" r="12" fill="#EB001B"/>
-      <circle cx="38" cy="19" r="12" fill="#F79E1B"/>
-      <path d="M30,10.2 a12,12 0 0 1 0,17.6 a12,12 0 0 1 0,-17.6z" fill="#FF5F00"/>
+    <svg className={className} viewBox="0 0 60 38" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Mastercard">
+      <rect width="60" height="38" rx="4" fill="white" stroke="#D0D0D0" strokeWidth="0.75"/>
+      {/* Red left circle */}
+      <circle cx="22" cy="17" r="11" fill="#EB001B"/>
+      {/* Orange right circle */}
+      <circle cx="38" cy="17" r="11" fill="#F79E1B"/>
+      {/* Overlap lens — computed from circle intersections */}
+      <path d="M30 9.45 A11 11 0 0 1 30 24.55 A11 11 0 0 0 30 9.45 Z" fill="#FF5F00"/>
+      {/* mastercard wordmark */}
+      <text
+        x="30" y="34"
+        textAnchor="middle"
+        fontFamily="'Helvetica Neue', Helvetica, Arial, sans-serif"
+        fontSize="5.5"
+        fontWeight="600"
+        fill="#231F20"
+        letterSpacing="0.3"
+      >mastercard</text>
     </svg>
   );
 }

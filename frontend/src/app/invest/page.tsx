@@ -148,7 +148,7 @@ export default function InvestPage() {
                       <p className="text-[10px] text-gray-400">Term</p>
                     </div>
                     <div className="bg-gray-50 rounded-lg p-2">
-                      <p className="text-sm font-bold text-gray-800">{pool.payoutFrequency.slice(0, 3)}</p>
+                      <p className="text-xs font-bold text-gray-800 leading-tight">{pool.payoutFrequency}</p>
                       <p className="text-[10px] text-gray-400">Payout</p>
                     </div>
                   </div>

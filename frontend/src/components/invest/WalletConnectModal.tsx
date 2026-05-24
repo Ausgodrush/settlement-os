@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { CryptoSymbol, CRYPTO_SYMBOLS, CRYPTO_PRICES } from '@/lib/investData';
 import { WalletState } from '@/lib/investStore';
-import { MetaMaskIcon, PhantomIcon, WalletConnectIcon } from './PaymentIcons';
+import { MetaMaskIcon, PhantomIcon } from './PaymentIcons';
 
 interface Props {
   onConnect: (type: WalletState['type'], crypto: CryptoSymbol) => Promise<void>;
@@ -13,7 +13,6 @@ interface Props {
 const WALLETS: { type: WalletState['type']; label: string; icon: React.ReactNode }[] = [
   { type: 'METAMASK', label: 'MetaMask', icon: <MetaMaskIcon className="w-8 h-8" /> },
   { type: 'PHANTOM', label: 'Phantom', icon: <PhantomIcon className="w-8 h-8" /> },
-  { type: 'WALLETCONNECT', label: 'WalletConnect', icon: <WalletConnectIcon className="w-8 h-8" /> },
 ];
 
 const CRYPTOS: CryptoSymbol[] = ['BTC', 'ETH', 'SOL'];

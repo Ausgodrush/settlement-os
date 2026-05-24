@@ -35,7 +35,7 @@ export function resetPools() {
 }
 
 export interface WalletState {
-  type: 'METAMASK' | 'PHANTOM' | 'WALLETCONNECT' | null;
+  type: 'METAMASK' | 'PHANTOM' | null;
   address: string | null;
   crypto: CryptoSymbol | null;
 }

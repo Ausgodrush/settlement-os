@@ -126,12 +126,6 @@ export default function AdminPage() {
         <section className="mb-8">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Investment Pool Management</h2>
-            <button
-              onClick={handleReset}
-              className="px-3 py-1.5 text-xs font-medium bg-white border border-gray-200 rounded-lg text-gray-600 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
-            >
-              Reset all pools
-            </button>
           </div>
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm divide-y divide-gray-100">
             {pools.map((pool) => {

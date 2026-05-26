@@ -32,6 +32,11 @@ tailwind.config = {
   ::-webkit-scrollbar { width: 5px; }
   ::-webkit-scrollbar-track { background: #f1f5f9; }
   ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  @media (max-width: 640px) {
+    #app-layout, #browse-layout { flex-direction: column !important; }
+    #app-sidebar, #browse-sidebar { width: 100% !important; min-height: unset !important; border-right: none !important; border-bottom: 1px solid #e5e7eb; }
+    #app-main { overflow: visible; }
+  }
 </style>
 </head>
 <body class="bg-gray-50 text-gray-900 antialiased">
@@ -421,6 +426,7 @@ function render() {
   document.getElementById('app').innerHTML = '';
   const el = buildView();
   document.getElementById('app').appendChild(el);
+  applyInitialState();
 }
 
 function setView(view, dealId) {
@@ -692,8 +698,10 @@ function buildView() {
   if (APP.view === 'login') { wrap.appendChild(buildLogin()); return wrap; }
   // Authenticated layout
   const layout = el('div', 'flex min-h-screen');
+  layout.id = 'app-layout';
   layout.appendChild(buildSidebar());
   const main = el('div', 'flex-1 overflow-auto');
+  main.id = 'app-main';
   if (APP.view === 'dashboard')    main.appendChild(buildDashboard());
   else if (APP.view === 'deals')   main.appendChild(buildDeals());
   else if (APP.view === 'workspace') main.appendChild(buildWorkspace());
@@ -772,12 +780,22 @@ function buildBrowseLayout() {
   ];
 
   const wrap = el('div', 'flex min-h-screen');
+  wrap.id = 'browse-layout';
 
   // Sidebar
   const sidebar = el('aside', 'w-60 min-h-screen bg-white border-r border-gray-200 flex flex-col');
+  sidebar.id = 'browse-sidebar';
   sidebar.innerHTML = `
-    <div class="p-5 border-b border-gray-100">
-      <button onclick="APP.view='browse';APP.landingTab='listings';render()" class="flex items-center gap-3 w-full text-left hover:opacity-80 transition-opacity">
+    <div class="border-b border-gray-100">
+      <button onclick="toggleBrowseNav()" class="w-full px-4 py-4 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left cursor-pointer" style="background:transparent;border:none;">
+        <div class="w-8 h-8 flex-shrink-0 relative" id="browse-burger-icon">
+          <span id="browse-icon-open" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transition:opacity .2s;">
+            <svg width="20" height="16" viewBox="0 0 18 14" fill="#9CA3AF"><rect y="0" width="18" height="2" rx="1"/><rect y="6" width="18" height="2" rx="1"/><rect y="12" width="18" height="2" rx="1"/></svg>
+          </span>
+          <span id="browse-icon-close" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transition:opacity .2s;opacity:0;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18L18 6M6 6l12 12"/></svg>
+          </span>
+        </div>
         <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
           <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
@@ -787,7 +805,7 @@ function buildBrowseLayout() {
       </button>
     </div>
     <nav class="flex-1 p-3 space-y-0.5" id="browseNav"></nav>
-    <div class="p-4 border-t border-gray-100 space-y-2">
+    <div id="browseNavActions" class="p-4 border-t border-gray-100 space-y-2">
       <button onclick="APP.view='login';render()"
         class="w-full py-2.5 px-4 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
         Sign In
@@ -1045,9 +1063,18 @@ function buildSidebar() {
   ];
 
   const sidebar = el('aside', 'w-60 min-h-screen bg-white border-r border-gray-200 flex flex-col');
+  sidebar.id = 'app-sidebar';
   sidebar.innerHTML = `
-    <div class="p-5 border-b border-gray-100">
-      <button onclick="APP.view='listings';render()" class="flex items-center gap-3 w-full text-left hover:opacity-80 transition-opacity">
+    <div class="border-b border-gray-100">
+      <button onclick="toggleSidebarNav()" class="w-full px-4 py-4 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left cursor-pointer" style="background:transparent;border:none;">
+        <div class="w-8 h-8 flex-shrink-0 relative" id="sb-burger-icon">
+          <span id="sb-icon-open" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transition:opacity .2s;">
+            <svg width="20" height="16" viewBox="0 0 18 14" fill="#9CA3AF"><rect y="0" width="18" height="2" rx="1"/><rect y="6" width="18" height="2" rx="1"/><rect y="12" width="18" height="2" rx="1"/></svg>
+          </span>
+          <span id="sb-icon-close" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transition:opacity .2s;opacity:0;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18L18 6M6 6l12 12"/></svg>
+          </span>
+        </div>
         <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
           <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
@@ -1057,7 +1084,7 @@ function buildSidebar() {
       </button>
     </div>
     <nav class="flex-1 p-3 space-y-0.5" id="navItems"></nav>
-    <div class="p-4 border-t border-gray-100">
+    <div id="sidebarUserSection" class="p-4 border-t border-gray-100">
       <div class="flex items-center gap-3 mb-3">
         <div class="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
           <span class="text-xs font-bold text-indigo-600">${u?.name?.split(' ').map(w=>w[0]).join('')}</span>
@@ -1102,6 +1129,58 @@ function buildToast({ msg, type }) {
     `fixed bottom-6 right-6 z-50 fade-in px-5 py-3 rounded-xl shadow-lg text-sm font-medium text-white flex items-center gap-3 ${type==='success'?'bg-gray-900':'bg-red-600'}`);
   t.innerHTML = `<span>${msg}</span>`;
   return t;
+}
+
+function toggleSidebarNav() {
+  const nav = document.getElementById('navItems');
+  const user = document.getElementById('sidebarUserSection');
+  const iconOpen  = document.getElementById('sb-icon-open');
+  const iconClose = document.getElementById('sb-icon-close');
+  if (!nav) return;
+  const hidden = nav.style.display === 'none';
+  nav.style.display   = hidden ? '' : 'none';
+  if (user) user.style.display = hidden ? '' : 'none';
+  if (iconOpen)  iconOpen.style.opacity  = hidden ? '0' : '1';
+  if (iconClose) iconClose.style.opacity = hidden ? '1' : '0';
+}
+
+function toggleBrowseNav() {
+  const nav     = document.getElementById('browseNav');
+  const actions = document.getElementById('browseNavActions');
+  const iconOpen  = document.getElementById('browse-icon-open');
+  const iconClose = document.getElementById('browse-icon-close');
+  if (!nav) return;
+  const hidden = nav.style.display === 'none';
+  nav.style.display     = hidden ? '' : 'none';
+  if (actions) actions.style.display = hidden ? '' : 'none';
+  if (iconOpen)  iconOpen.style.opacity  = hidden ? '0' : '1';
+  if (iconClose) iconClose.style.opacity = hidden ? '1' : '0';
+}
+
+function applyInitialState() {
+  const mobile = window.innerWidth <= 640;
+  // Authenticated sidebar
+  const nav  = document.getElementById('navItems');
+  const user = document.getElementById('sidebarUserSection');
+  const sbOpen  = document.getElementById('sb-icon-open');
+  const sbClose = document.getElementById('sb-icon-close');
+  if (nav) {
+    nav.style.display   = mobile ? 'none' : '';
+    if (user) user.style.display = mobile ? 'none' : '';
+    if (sbOpen)  sbOpen.style.opacity  = mobile ? '1' : '0';
+    if (sbClose) sbClose.style.opacity = mobile ? '0' : '1';
+  }
+  // Browse sidebar
+  const bNav    = document.getElementById('browseNav');
+  const bActions= document.getElementById('browseNavActions');
+  const brOpen  = document.getElementById('browse-icon-open');
+  const brClose = document.getElementById('browse-icon-close');
+  if (bNav) {
+    bNav.style.display     = mobile ? 'none' : '';
+    if (bActions) bActions.style.display = mobile ? 'none' : '';
+    if (brOpen)  brOpen.style.opacity  = mobile ? '1' : '0';
+    if (brClose) brClose.style.opacity = mobile ? '0' : '1';
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

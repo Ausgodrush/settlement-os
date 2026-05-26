@@ -11,6 +11,14 @@
     .nav-link.active { background:#EEF2FF; color:#4338CA; }
     .bar { display:block; height:2px; background:currentColor; border-radius:9999px; transition:all .2s; }
     #main-nav.hidden { display:none; }
+
+    @media (max-width: 640px) {
+      body { flex-direction: column; }
+      aside { width: 100%; min-height: unset; border-right: none; border-bottom: 1px solid #e5e7eb; }
+      main { padding: 1.5rem 1rem; }
+      #burger-btn { padding-top: 0.875rem; padding-bottom: 0.875rem; }
+      .nav-link { padding: 10px 12px; font-size: 15px; }
+    }
   </style>
 </head>
 <body class="bg-gray-100 flex min-h-screen">
@@ -104,9 +112,17 @@
       iconOpen.style.opacity  = open ? '0' : '1';
       iconClose.style.opacity = open ? '1' : '0';
     }
-    /* Start in open state — show X, hide hamburger */
-    document.getElementById('icon-open').style.opacity  = '0';
-    document.getElementById('icon-close').style.opacity = '1';
+    /* Desktop: start open (show X). Mobile: start closed (show hamburger). */
+    if (window.innerWidth <= 640) {
+      open = false;
+      document.getElementById('main-nav').classList.add('hidden');
+      document.getElementById('burger-btn').setAttribute('aria-expanded', 'false');
+      document.getElementById('icon-open').style.opacity  = '1';
+      document.getElementById('icon-close').style.opacity = '0';
+    } else {
+      document.getElementById('icon-open').style.opacity  = '0';
+      document.getElementById('icon-close').style.opacity = '1';
+    }
   </script>
 </body>
 </html>

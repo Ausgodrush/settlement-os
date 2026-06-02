@@ -696,6 +696,7 @@ function buildView() {
   if (APP.view === 'landing') { wrap.appendChild(buildLandingPage()); return wrap; }
   if (APP.view === 'browse')  { wrap.appendChild(buildBrowseLayout()); return wrap; }
   if (APP.view === 'login') { wrap.appendChild(buildLogin()); return wrap; }
+  if (APP.view === 'contact') { wrap.appendChild(buildContact()); return wrap; }
   // Authenticated layout
   const layout = el('div', 'flex min-h-screen');
   layout.id = 'app-layout';
@@ -885,6 +886,7 @@ function buildLandingPage() {
       </div>
       <div style="display:flex;align-items:center;gap:1rem;">
         <button onclick="APP.view='browse';APP.landingTab='listings';render()" style="background:none;border:none;color:#6b7280;font-size:0.9rem;cursor:pointer;padding:0.4rem 0.75rem;border-radius:8px;transition:color 0.15s;" onmouseover="this.style.color='#111827'" onmouseout="this.style.color='#6b7280'">Browse</button>
+        <button onclick="APP.view='contact';render()" style="background:none;border:none;color:#6b7280;font-size:0.9rem;cursor:pointer;padding:0.4rem 0.75rem;border-radius:8px;transition:color 0.15s;" onmouseover="this.style.color='#111827'" onmouseout="this.style.color='#6b7280'">Contact</button>
         <button onclick="APP.view='login';render()" style="background:none;border:1px solid #d1d5db;color:#374151;font-size:0.875rem;font-weight:600;cursor:pointer;padding:0.5rem 1.25rem;border-radius:8px;transition:all 0.15s;" onmouseover="this.style.borderColor='#4f46e5';this.style.color='#4f46e5'" onmouseout="this.style.borderColor='#d1d5db';this.style.color='#374151'">Login</button>
         <button onclick="APP.view='login';render()" style="background:#4f46e5;border:none;color:#fff;font-size:0.875rem;font-weight:700;cursor:pointer;padding:0.5rem 1.25rem;border-radius:8px;transition:background 0.15s;" onmouseover="this.style.background='#4338ca'" onmouseout="this.style.background='#4f46e5'">Register</button>
       </div>
@@ -3281,6 +3283,128 @@ function buildPortfolio() {
     inner.appendChild(note);
   }
   return page;
+}
+
+// ── Contact Page ──────────────────────────────────────────────────────────
+function buildContact() {
+  const page = document.createElement('div');
+  page.style.cssText = 'min-height:100vh;background:#f8fafc;';
+
+  // Navbar
+  page.innerHTML = `
+  <header style="background:#fff;border-bottom:1px solid #e5e7eb;position:sticky;top:0;z-index:50;">
+    <div style="max-width:1200px;margin:0 auto;padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:64px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:34px;height:34px;background:#4f46e5;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+          </svg>
+        </div>
+        <span style="font-size:1.05rem;font-weight:700;color:#111827;">Settlement OS</span>
+      </div>
+      <nav style="display:flex;align-items:center;gap:1.5rem;">
+        <button onclick="APP.view='landing';render()" style="background:none;border:none;color:#6b7280;font-size:0.9rem;cursor:pointer;padding:0.4rem 0.75rem;border-radius:8px;" onmouseover="this.style.color='#111827'" onmouseout="this.style.color='#6b7280'">Home</button>
+        <button onclick="APP.view='browse';APP.landingTab='listings';render()" style="background:none;border:none;color:#6b7280;font-size:0.9rem;cursor:pointer;padding:0.4rem 0.75rem;border-radius:8px;" onmouseover="this.style.color='#111827'" onmouseout="this.style.color='#6b7280'">Browse</button>
+        <button onclick="APP.view='contact';render()" style="background:none;border:none;color:#4f46e5;font-size:0.9rem;font-weight:600;cursor:pointer;padding:0.4rem 0.75rem;border-radius:8px;">Contact</button>
+        <button onclick="APP.view='login';render()" style="background:#4f46e5;border:none;color:#fff;font-size:0.875rem;font-weight:700;cursor:pointer;padding:0.5rem 1.25rem;border-radius:8px;" onmouseover="this.style.background='#4338ca'" onmouseout="this.style.background='#4f46e5'">Sign in →</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section style="background:#4338ca;padding:5rem 2rem;text-align:center;">
+    <p style="color:#a5b4fc;font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;margin:0 0 0.75rem;">Get in touch</p>
+    <h1 style="font-size:clamp(2.2rem,5vw,3.5rem);font-weight:900;color:#fff;margin:0 0 1rem;line-height:1.1;">Contact Settlement OS</h1>
+    <p style="color:#c7d2fe;font-size:1.05rem;max-width:540px;margin:0 auto;line-height:1.7;">Our team specialises in Australian and Bali property settlement coordination. Make Settlement OS your property partner today.</p>
+  </section>
+
+  <!-- Form card -->
+  <section style="max-width:720px;margin:-2.5rem auto 0;padding:0 1.5rem 2rem;position:relative;z-index:10;">
+    <div id="contact-card" style="background:#fff;border-radius:20px;border:1px solid #e5e7eb;box-shadow:0 8px 32px rgba(0,0,0,0.08);padding:2.5rem;">
+      <div id="contact-form-wrap">
+        <h2 style="font-size:1.4rem;font-weight:800;color:#111827;margin:0 0 0.35rem;">Connect With Us</h2>
+        <p style="color:#9ca3af;font-size:0.875rem;margin:0 0 2rem;">Fill in the form below and our team will be in touch within one business day.</p>
+        <form id="contact-form" onsubmit="contactSubmit(event)" style="display:flex;flex-direction:column;gap:1.1rem;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.1rem;">
+            <div>
+              <label style="display:block;font-size:0.85rem;font-weight:500;color:#374151;margin-bottom:6px;">Name</label>
+              <input type="text" placeholder="Jane Smith" style="width:100%;padding:0.75rem 1rem;border:1px solid #d1d5db;border-radius:12px;font-size:0.875rem;font-family:inherit;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#6366f1';this.style.boxShadow='0 0 0 3px rgba(99,102,241,0.12)'" onblur="this.style.borderColor='#d1d5db';this.style.boxShadow='none'"/>
+            </div>
+            <div>
+              <label style="display:block;font-size:0.85rem;font-weight:500;color:#374151;margin-bottom:6px;">Email</label>
+              <input type="email" placeholder="jane@example.com" style="width:100%;padding:0.75rem 1rem;border:1px solid #d1d5db;border-radius:12px;font-size:0.875rem;font-family:inherit;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#6366f1';this.style.boxShadow='0 0 0 3px rgba(99,102,241,0.12)'" onblur="this.style.borderColor='#d1d5db';this.style.boxShadow='none'"/>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.1rem;">
+            <div>
+              <label style="display:block;font-size:0.85rem;font-weight:500;color:#374151;margin-bottom:6px;">Phone Number</label>
+              <input type="tel" placeholder="+61 4XX XXX XXX" style="width:100%;padding:0.75rem 1rem;border:1px solid #d1d5db;border-radius:12px;font-size:0.875rem;font-family:inherit;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#6366f1';this.style.boxShadow='0 0 0 3px rgba(99,102,241,0.12)'" onblur="this.style.borderColor='#d1d5db';this.style.boxShadow='none'"/>
+            </div>
+            <div>
+              <label style="display:block;font-size:0.85rem;font-weight:500;color:#374151;margin-bottom:6px;">Subject</label>
+              <input type="text" placeholder="e.g. Property enquiry" style="width:100%;padding:0.75rem 1rem;border:1px solid #d1d5db;border-radius:12px;font-size:0.875rem;font-family:inherit;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#6366f1';this.style.boxShadow='0 0 0 3px rgba(99,102,241,0.12)'" onblur="this.style.borderColor='#d1d5db';this.style.boxShadow='none'"/>
+            </div>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.85rem;font-weight:500;color:#374151;margin-bottom:6px;">Message</label>
+            <textarea placeholder="Tell us about your property or enquiry…" rows="5" style="width:100%;padding:0.75rem 1rem;border:1px solid #d1d5db;border-radius:12px;font-size:0.875rem;font-family:inherit;outline:none;box-sizing:border-box;resize:none;" onfocus="this.style.borderColor='#6366f1';this.style.boxShadow='0 0 0 3px rgba(99,102,241,0.12)'" onblur="this.style.borderColor='#d1d5db';this.style.boxShadow='none'"></textarea>
+          </div>
+          <button id="contact-submit" type="submit" style="width:100%;padding:0.9rem;background:#4f46e5;color:#fff;border:none;border-radius:12px;font-size:0.95rem;font-weight:700;cursor:pointer;font-family:inherit;transition:background 0.15s;" onmouseover="this.style.background='#4338ca'" onmouseout="this.style.background='#4f46e5'">Send Message →</button>
+        </form>
+      </div>
+      <div id="contact-success" style="display:none;flex-direction:column;align-items:center;justify-content:center;padding:3.5rem 1rem;text-align:center;">
+        <div style="width:60px;height:60px;background:#e0e7ff;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;">
+          <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#4f46e5" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+        </div>
+        <h3 style="font-size:1.3rem;font-weight:800;color:#111827;margin:0 0 0.5rem;">Message sent!</h3>
+        <p style="color:#9ca3af;font-size:0.9rem;max-width:280px;margin:0 0 1.5rem;">Thanks for reaching out. We'll get back to you within one business day.</p>
+        <button onclick="contactReset()" style="padding:0.6rem 1.5rem;background:#4f46e5;color:#fff;border:none;border-radius:10px;font-size:0.875rem;font-weight:600;cursor:pointer;font-family:inherit;" onmouseover="this.style.background='#4338ca'" onmouseout="this.style.background='#4f46e5'">Send another message</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer style="background:#fff;border-top:1px solid #e5e7eb;margin-top:3rem;">
+    <div style="max-width:1200px;margin:0 auto;padding:2.5rem 2rem;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="width:26px;height:26px;background:#4f46e5;border-radius:6px;display:flex;align-items:center;justify-content:center;">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        </div>
+        <span style="font-weight:700;color:#111827;font-size:0.95rem;">Settlement OS</span>
+        <span style="color:#d1d5db;margin:0 4px;">·</span>
+        <span style="color:#9ca3af;font-size:0.8rem;">&copy; 2026 BALIPROP LLC</span>
+      </div>
+      <div style="display:flex;gap:1.5rem;font-size:0.82rem;color:#9ca3af;">
+        <button onclick="APP.view='landing';render()" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:0.82rem;font-family:inherit;" onmouseover="this.style.color='#4f46e5'" onmouseout="this.style.color='#9ca3af'">Home</button>
+        <button onclick="APP.view='browse';APP.landingTab='listings';render()" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:0.82rem;font-family:inherit;" onmouseover="this.style.color='#4f46e5'" onmouseout="this.style.color='#9ca3af'">Listings</button>
+        <button onclick="APP.view='contact';render()" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:0.82rem;font-family:inherit;" onmouseover="this.style.color='#4f46e5'" onmouseout="this.style.color='#9ca3af'">Contact</button>
+        <a href="#" style="color:#9ca3af;text-decoration:none;" onmouseover="this.style.color='#4f46e5'" onmouseout="this.style.color='#9ca3af'">Privacy Policy</a>
+      </div>
+    </div>
+  </footer>`;
+
+  return page;
+}
+
+function contactSubmit(e) {
+  e.preventDefault();
+  const btn = document.getElementById('contact-submit');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  setTimeout(() => {
+    document.getElementById('contact-form-wrap').style.display = 'none';
+    const s = document.getElementById('contact-success');
+    s.style.display = 'flex';
+  }, 900);
+}
+
+function contactReset() {
+  document.getElementById('contact-form-wrap').style.display = 'block';
+  document.getElementById('contact-success').style.display = 'none';
+  document.getElementById('contact-form').reset();
+  const btn = document.getElementById('contact-submit');
+  btn.disabled = false;
+  btn.textContent = 'Send Message →';
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────

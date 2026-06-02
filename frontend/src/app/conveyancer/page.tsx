@@ -1,13 +1,72 @@
 'use client';
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/layout/Sidebar';
 import { useDeals } from '@/hooks/useDeals';
 import { Deal, DEAL_STATUS_COLORS, DEAL_STATUS_LABELS } from '@/types';
 
+const MOCK_PIPELINE: Partial<Deal>[] = [
+  {
+    id: 'd1',
+    referenceNo: 'PSOS-2024-0042',
+    propertyAddress: '14 Glenelg Street',
+    propertySuburb: 'Norwood',
+    propertyState: 'SA',
+    status: 'ACTIVE' as const,
+    purchasePrice: 850000,
+    settlementDate: '2026-06-20',
+    daysToSettlement: 17,
+    conditionsSummary: { total: 5, met: 3, pending: 2 },
+  },
+  {
+    id: 'd2',
+    referenceNo: 'PSOS-2024-0039',
+    propertyAddress: '7 Jetty Road',
+    propertySuburb: 'Glenelg',
+    propertyState: 'SA',
+    status: 'READY' as const,
+    purchasePrice: 620000,
+    settlementDate: '2026-06-06',
+    daysToSettlement: 3,
+    conditionsSummary: { total: 4, met: 4, pending: 0 },
+  },
+  {
+    id: 'd3',
+    referenceNo: 'PSOS-2024-0051',
+    propertyAddress: 'Villa Karang Sunset',
+    propertySuburb: 'Seminyak',
+    propertyState: 'BALI',
+    status: 'ACTIVE' as const,
+    purchasePrice: 485000,
+    settlementDate: '2026-07-01',
+    daysToSettlement: 28,
+    conditionsSummary: { total: 3, met: 1, pending: 2 },
+  },
+  {
+    id: 'd4',
+    referenceNo: 'PSOS-2024-0031',
+    propertyAddress: '42 Prospect Street',
+    propertySuburb: 'Prospect',
+    propertyState: 'SA',
+    status: 'SETTLED' as const,
+    purchasePrice: 750000,
+    conditionsSummary: { total: 5, met: 5, pending: 0 },
+  },
+  {
+    id: 'd5',
+    referenceNo: 'PSOS-2024-0058',
+    propertyAddress: '3 Moseley Square',
+    propertySuburb: 'Glenelg',
+    propertyState: 'SA',
+    status: 'INIT' as const,
+    purchasePrice: 1450000,
+    conditionsSummary: { total: 5, met: 0, pending: 5 },
+  },
+];
+
 export default function ConveyancerPipelinePage() {
   const { data, loading } = useDeals();
-  const deals = data?.data || [];
+  const apiDeals = data?.data || [];
+  const deals = (apiDeals.length > 0 ? apiDeals : MOCK_PIPELINE) as Deal[];
 
   const actionRequired = deals.filter((d) =>
     d.status === 'READY' ||

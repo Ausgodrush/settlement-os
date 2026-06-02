@@ -187,7 +187,6 @@ export default function ContactPage() {
           </div>
           <div className="border-t border-gray-100 mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-400">
             <span>&copy; {new Date().getFullYear()} BALIPROP LLC. All rights reserved.</span>
-            <span>ABN 00 000 000 000</span>
           </div>
         </div>
       </footer>

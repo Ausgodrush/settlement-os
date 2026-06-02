@@ -126,7 +126,7 @@ export default function ContactPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="phone">
                       Phone Number                    </label>
                     <input id="phone" name="phone" type="tel" value={form.phone} onChange={handleChange}
-                      placeholder="+61 4XX XXX XXX"
+                      placeholder=""
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition" />
                   </div>
                   <div>

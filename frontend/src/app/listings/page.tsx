@@ -98,7 +98,7 @@ export default function ListingsPage() {
                 key={deal.id}
                 className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md hover:border-indigo-200 transition-all group"
               >
-                <ListingImageCarousel images={deal.images} alt={deal.propertyAddress} flag={deal.flag} />
+                <ListingImageCarousel images={deal.images} alt={deal.propertyAddress} />
 
                 <div className="p-5">
                   <div className="mb-3">

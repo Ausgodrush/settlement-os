@@ -26,6 +26,7 @@ const NAV_LINKS = [
   { label: 'Dashboard', href: '/dashboard' },
   { label: 'Portfolio', href: '/portfolio' },
   { label: 'Deals', href: '/deals' },
+  { label: 'Contact', href: '/contact' },
 ];
 
 export default function Home() {
@@ -168,7 +169,7 @@ export default function Home() {
               href="/listings"
               className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden block hover:shadow-md hover:border-indigo-200 transition-all group"
             >
-              <ListingImageCarousel images={deal.images} alt={deal.propertyAddress} flag={deal.flag} />
+              <ListingImageCarousel images={deal.images} alt={deal.propertyAddress} />
 
               <div className="p-5">
                 <div className="mb-3">

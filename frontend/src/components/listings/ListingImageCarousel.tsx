@@ -4,11 +4,10 @@ import { useState } from 'react';
 interface Props {
   images: string[];
   alt: string;
-  flag: string;
   className?: string;
 }
 
-export default function ListingImageCarousel({ images, alt, flag, className = 'h-44' }: Props) {
+export default function ListingImageCarousel({ images, alt, className = 'h-44' }: Props) {
   const [idx, setIdx] = useState(0);
   const total = images.length;
 
@@ -37,9 +36,6 @@ export default function ListingImageCarousel({ images, alt, flag, className = 'h
           loading="lazy"
         />
       ))}
-
-      {/* Country flag */}
-      <span className="absolute top-3 left-3 text-xl z-10 drop-shadow">{flag}</span>
 
       {/* "N of M" counter */}
       {total > 1 && (

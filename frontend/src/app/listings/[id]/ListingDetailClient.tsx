@@ -9,7 +9,6 @@ export default function ListingDetailClient({ id }: { id: string }) {
   const router = useRouter();
   const listing = MOCK_LISTINGS.find((l) => l.id === id);
   const [imgIdx, setImgIdx] = useState(0);
-  const [enquirySent, setEnquirySent] = useState(false);
   const [showBuyModal, setShowBuyModal] = useState(false);
 
   if (!listing) {
@@ -198,20 +197,6 @@ export default function ListingDetailClient({ id }: { id: string }) {
                 Buy Now — ${listing.purchasePrice.toLocaleString('en-AU')} {listing.currency}
               </button>
 
-              {enquirySent ? (
-                <div className="text-center py-3">
-                  <svg className="w-7 h-7 text-green-500 mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
-                  </svg>
-                  <p className="text-sm font-semibold text-gray-800">Enquiry sent!</p>
-                  <p className="text-xs text-gray-400 mt-0.5">We'll be in touch shortly</p>
-                </div>
-              ) : (
-                <button onClick={() => setEnquirySent(true)}
-                  className="w-full py-3 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition-colors mb-2">
-                  Enquire now
-                </button>
-              )}
               <Link href="/contact"
                 className="block w-full py-2.5 text-center border border-gray-300 text-sm font-semibold text-gray-700 rounded-xl hover:bg-gray-50 transition-colors">
                 Contact Settlement OS

@@ -166,7 +166,7 @@ export default function Home() {
           {MOCK_LISTINGS.map((deal) => (
             <Link
               key={deal.id}
-              href="/listings"
+              href={`/listings/${deal.id}`}
               className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden block hover:shadow-md hover:border-indigo-200 transition-all group"
             >
               <ListingImageCarousel images={deal.images} alt={deal.propertyAddress} />

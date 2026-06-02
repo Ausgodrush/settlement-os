@@ -49,51 +49,38 @@ export function MetaMaskIcon({ className }: { className?: string }) {
 export function VisaIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 60 38" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Visa">
-      <defs>
-        <linearGradient id="visa-bg" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="84%" stopColor="#1A1F71"/>
-          <stop offset="84%" stopColor="#F7B600"/>
-        </linearGradient>
-      </defs>
-      {/* Navy card + gold bottom stripe via gradient — rx clips both */}
-      <rect width="60" height="38" rx="4" fill="url(#visa-bg)" stroke="#111827" strokeWidth="1.5"/>
-      {/* VISA wordmark — white italic bold */}
+      <rect width="60" height="38" rx="4" fill="white" stroke="#D1D5DB" strokeWidth="1"/>
       <text
-        x="30" y="19"
+        x="30" y="20"
         dominantBaseline="middle"
         textAnchor="middle"
         fontFamily="'Helvetica Neue', Helvetica, Arial, sans-serif"
-        fontSize="22"
+        fontSize="19"
         fontStyle="italic"
         fontWeight="900"
-        fill="white"
-        letterSpacing="-0.5"
+        fill="#1A1F71"
+        letterSpacing="-1"
       >VISA</text>
     </svg>
   );
 }
 
 export function MastercardIcon({ className }: { className?: string }) {
-  /* Circles r=12, centers (20,17) and (40,17), d=20
-     Intersection x=30, y=17±√(144-100)=±√44≈±6.63 → (30,10.37) and (30,23.63) */
+  /* Centers (22,17) and (38,17) r=10; intersection at (30,11) and (30,23) */
   return (
     <svg className={className} viewBox="0 0 60 38" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Mastercard">
-      <rect width="60" height="38" rx="4" fill="#F9F9F9" stroke="#111827" strokeWidth="1.5"/>
-      {/* Red left circle */}
-      <circle cx="20" cy="17" r="12" fill="#EB001B"/>
-      {/* Orange right circle */}
-      <circle cx="40" cy="17" r="12" fill="#F79E1B"/>
-      {/* Overlap lens */}
-      <path d="M30 10.37 A12 12 0 0 1 30 23.63 A12 12 0 0 0 30 10.37 Z" fill="#FF5F00"/>
-      {/* mastercard wordmark */}
+      <rect width="60" height="38" rx="4" fill="white" stroke="#D1D5DB" strokeWidth="1"/>
+      <circle cx="22" cy="17" r="10" fill="#EB001B"/>
+      <circle cx="38" cy="17" r="10" fill="#F79E1B"/>
+      <path d="M30 11 A10 10 0 0 1 30 23 A10 10 0 0 0 30 11 Z" fill="#FF5F00"/>
       <text
         x="30" y="34"
         textAnchor="middle"
         fontFamily="'Helvetica Neue', Helvetica, Arial, sans-serif"
-        fontSize="5.5"
-        fontWeight="700"
+        fontSize="5"
+        fontWeight="600"
         fill="#231F20"
-        letterSpacing="0.4"
+        letterSpacing="0.3"
       >mastercard</text>
     </svg>
   );

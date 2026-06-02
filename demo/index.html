@@ -399,6 +399,8 @@ let APP = {
   adminMessageText: '',
   adminDealId: null,
   adminDealMessagesParty: null,
+  currentListing: null,
+  listingDetailImgIdx: 0,
   platformFees: [],
   ownerWalletBalance: { AUD: 0, BTC: 0, ETH: 0, SOL: 0 },
   checkoutPoolId: null,
@@ -699,6 +701,7 @@ function buildView() {
   if (APP.view === 'browse')  { wrap.appendChild(buildBrowseLayout()); return wrap; }
   if (APP.view === 'login') { wrap.appendChild(buildLogin()); return wrap; }
   if (APP.view === 'contact') { wrap.appendChild(buildContact()); return wrap; }
+  if (APP.view === 'listing-detail') { wrap.appendChild(buildListingDetail()); return wrap; }
   // Authenticated layout
   const layout = el('div', 'flex min-h-screen');
   layout.id = 'app-layout';
@@ -2576,6 +2579,14 @@ function buildListings() {
     const pool = MOCK_POOLS.find(p => p.id === listing.poolId);
     const pct = pool ? Math.round((pool.amountRaised / pool.targetRaise) * 100) : 0;
     const card = el('div', 'bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group');
+    card.onclick = (e) => {
+      if (e.target.closest('button') || e.target.closest('textarea')) return;
+      APP.currentListing = listing;
+      APP.listingDetailImgIdx = 0;
+      APP.listingDetailPrevView = APP.currentUser ? 'listings' : 'browse';
+      APP.view = 'listing-detail';
+      render();
+    };
     card.innerHTML = `
       <div class="h-44 bg-gradient-to-br ${listing.color} flex items-center justify-center relative overflow-hidden">
         <span class="text-6xl">${listing.emoji}</span>
@@ -3456,6 +3467,249 @@ function buildContact() {
   </footer>`;
 
   return page;
+}
+
+// ── Listing Detail Page ────────────────────────────────────────────────────
+function buildListingDetail() {
+  const l = APP.currentListing;
+  if (!l) { APP.view = 'browse'; APP.landingTab = 'listings'; render(); return el('div'); }
+
+  // Normalise fields — demo MOCK_LISTINGS use different names to Next.js version
+  const addr    = l.address      || l.propertyAddress || '';
+  const subur   = l.suburb       || '';
+  const price   = l.price        || l.purchasePrice   || 0;
+  const curr    = l.currency     || 'AUD';
+  const images  = l.images       || (l.image ? [l.image] : []);
+  const total   = images.length;
+  const status  = l.statusLabel  || l.status          || 'Live';
+  const refNo   = l.listingRef   || l.referenceNo     || '';
+  const condPct = (l.conditionsTotal > 0) ? Math.round(l.conditionsMet / l.conditionsTotal * 100) : 0;
+  const prevView = APP.listingDetailPrevView || 'browse';
+
+  function goBack() {
+    APP.view = prevView;
+    if (prevView === 'browse') APP.landingTab = 'listings';
+    APP.currentListing = null;
+    render();
+  }
+
+  const page = document.createElement('div');
+  page.style.cssText = 'min-height:100vh;background:#fff;';
+
+  // ── Sticky header ──
+  const header = document.createElement('header');
+  header.style.cssText = 'position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid #e5e7eb;';
+  header.innerHTML = `
+    <div style="max-width:1200px;margin:0 auto;padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:56px;gap:1rem;">
+      <button onclick="(${goBack.toString()})()" style="display:flex;align-items:center;gap:6px;font-size:0.875rem;color:#6b7280;background:none;border:none;cursor:pointer;flex-shrink:0;" onmouseover="this.style.color='#111827'" onmouseout="this.style.color='#6b7280'">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+        Back to listings
+      </button>
+      <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1;">
+        <span style="font-weight:600;color:#111827;font-size:0.875rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${addr}</span>
+        <span style="color:#d1d5db;">·</span>
+        <span style="font-size:0.875rem;color:#6b7280;flex-shrink:0;">$${price.toLocaleString('en-AU')} ${curr}</span>
+      </div>
+      <button onclick="APP.view='login';render()" style="flex-shrink:0;padding:0.5rem 1rem;background:#4f46e5;color:#fff;border:none;border-radius:8px;font-size:0.875rem;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#4338ca'" onmouseout="this.style.background='#4f46e5'">Sign in →</button>
+    </div>`;
+  page.appendChild(header);
+
+  // ── Hero gallery ──
+  const gallery = document.createElement('div');
+  gallery.style.cssText = 'position:relative;height:480px;background:#111827;overflow:hidden;';
+  gallery.innerHTML = `
+    <img id="listingHeroImg" src="${images[APP.listingDetailImgIdx] || ''}" alt="${addr}"
+      style="width:100%;height:100%;object-fit:cover;"/>
+    <div style="position:absolute;inset:0;background:linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 60%);pointer-events:none;"></div>
+    ${total > 1 ? `
+    <button onclick="APP.listingDetailImgIdx=(APP.listingDetailImgIdx-1+${total})%${total};document.getElementById('listingHeroImg').src=(APP.currentListing.images||[APP.currentListing.image])[APP.listingDetailImgIdx];updateThumbs();"
+      style="position:absolute;left:16px;top:50%;transform:translateY(-50%);width:40px;height:40px;background:rgba(255,255,255,.9);border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.2);">
+      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#1f2937" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+    </button>
+    <button onclick="APP.listingDetailImgIdx=(APP.listingDetailImgIdx+1)%${total};document.getElementById('listingHeroImg').src=(APP.currentListing.images||[APP.currentListing.image])[APP.listingDetailImgIdx];updateThumbs();"
+      style="position:absolute;right:16px;top:50%;transform:translateY(-50%);width:40px;height:40px;background:rgba(255,255,255,.9);border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.2);">
+      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#1f2937" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    </button>` : ''}
+    <div style="position:absolute;bottom:16px;right:16px;padding:4px 10px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;font-weight:500;border-radius:999px;" id="imgCounter">${APP.listingDetailImgIdx + 1} / ${total}</div>
+    ${total > 1 ? `<div style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:8px;" id="thumbStrip">
+      ${images.map((src, i) => `
+        <button onclick="APP.listingDetailImgIdx=${i};document.getElementById('listingHeroImg').src='${src}';updateThumbs();"
+          style="width:56px;height:40px;border-radius:8px;overflow:hidden;border:2px solid ${i===APP.listingDetailImgIdx?'#fff':'rgba(255,255,255,0.4)'};cursor:pointer;padding:0;transition:all .15s;" id="thumb_${i}">
+          <img src="${src}" style="width:100%;height:100%;object-fit:cover;display:block;"/>
+        </button>`).join('')}
+    </div>` : ''}`;
+  page.appendChild(gallery);
+
+  // ── Main content ──
+  const main = document.createElement('div');
+  main.style.cssText = 'max-width:1200px;margin:0 auto;padding:2.5rem 1.5rem;';
+  main.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 340px;gap:2.5rem;align-items:start;">
+
+      <!-- Left column -->
+      <div>
+        <!-- Address + price -->
+        <div style="margin-bottom:1.5rem;">
+          <p style="font-size:0.875rem;color:#9ca3af;margin:0 0 4px;">${subur}</p>
+          <h1 style="font-size:2rem;font-weight:900;color:#111827;margin:0 0 12px;line-height:1.1;">${addr}</h1>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <span style="font-size:2rem;font-weight:800;color:#4f46e5;">$${price.toLocaleString('en-AU')} <span style="font-size:1rem;font-weight:500;color:#9ca3af;">${curr}</span></span>
+            <span style="padding:4px 12px;border-radius:999px;font-size:0.75rem;font-weight:700;background:#dbeafe;color:#1d4ed8;">${status}</span>
+          </div>
+        </div>
+
+        <!-- Property stats -->
+        <div style="display:flex;gap:2rem;padding:1.25rem 0;border-top:1px solid #f3f4f6;border-bottom:1px solid #f3f4f6;margin-bottom:2rem;flex-wrap:wrap;">
+          ${[
+            { label:'Bed', value: l.beds },
+            { label:'Bath', value: l.baths },
+            { label:'Car', value: l.parking },
+            { label:'Land', value: l.landSize ? (typeof l.landSize==='number' ? l.landSize+' m²' : l.landSize) : 'N/A' },
+          ].map(s => `
+            <div style="display:flex;align-items:center;gap:8px;color:#374151;">
+              <span style="font-size:1.25rem;font-weight:800;color:#111827;">${s.value}</span>
+              <span style="font-size:0.875rem;color:#9ca3af;">${s.label}</span>
+            </div>`).join('')}
+        </div>
+
+        <!-- Description -->
+        <div style="margin-bottom:2rem;">
+          <h2 style="font-size:1.125rem;font-weight:800;color:#111827;margin:0 0 12px;">About this property</h2>
+          ${(l.description||'No description available.').split('\n\n').map(p => `<p style="font-size:0.9rem;color:#4b5563;line-height:1.75;margin:0 0 12px;">${p}</p>`).join('')}
+        </div>
+
+        <!-- Features -->
+        <div style="margin-bottom:2rem;">
+          <h2 style="font-size:1.125rem;font-weight:800;color:#111827;margin:0 0 12px;">Property highlights</h2>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            ${(l.features||[]).map(f => `
+              <div style="display:flex;align-items:center;gap:8px;font-size:0.875rem;color:#374151;">
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#6366f1" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                ${f}
+              </div>`).join('')}
+          </div>
+        </div>
+
+        <!-- Details table -->
+        <div>
+          <h2 style="font-size:1.125rem;font-weight:800;color:#111827;margin:0 0 12px;">Property details</h2>
+          <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+            ${[
+              ['Property type', l.type],
+              ['Land size', l.landSize ? (typeof l.landSize==='number' ? l.landSize+' m²' : l.landSize) : 'N/A'],
+              ...(l.titleRef ? [['Title reference', l.titleRef]] : []),
+              ['Location', subur],
+              ...(l.state==='BALI'?[['Tenure', (l.description||'').includes('Hak Milik')?'Hak Milik (Freehold)':'Leasehold']]:[] ),
+              ...(l.deposit ? [['Deposit', l.deposit]] : []),
+              ...(l.yearBuilt ? [['Year built', l.yearBuilt]] : []),
+              ...(l.rentalYield ? [['Rental yield', l.rentalYield+'%']] : []),
+              ...(l.weeklyRent ? [['Weekly rent', '$'+l.weeklyRent.toLocaleString('en-AU')+' AUD']] : []),
+              ['Reference', refNo],
+            ].map(([label, val], i, arr) => `
+              <div style="display:flex;align-items:flex-start;padding:12px 20px;gap:16px;${i<arr.length-1?'border-bottom:1px solid #e5e7eb;':''}">
+                <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#9ca3af;width:140px;flex-shrink:0;padding-top:2px;">${label}</span>
+                <span style="font-size:0.875rem;color:#1f2937;">${val}</span>
+              </div>`).join('')}
+          </div>
+        </div>
+      </div>
+
+      <!-- Right sidebar -->
+      <div style="position:sticky;top:72px;display:flex;flex-direction:column;gap:16px;">
+
+        <!-- Agent / Enquire card -->
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,.06);padding:20px;">
+          <p style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#9ca3af;margin:0 0 12px;">Listed by</p>
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+            <div style="width:40px;height:40px;background:#e0e7ff;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <span style="font-size:0.875rem;font-weight:800;color:#4f46e5;">${(l.agent?.name||l.submittedBy||'SO').split(' ').map(w=>w[0]).join('')}</span>
+            </div>
+            <div>
+              <p style="font-size:0.875rem;font-weight:600;color:#111827;margin:0;">${l.agent?.name||l.submittedBy||'Settlement OS'}</p>
+              <p style="font-size:0.75rem;color:#9ca3af;margin:0;">${l.agent?.role||'Listing Agent'} · ${l.agent?.firm||'Settlement OS'}</p>
+            </div>
+          </div>
+          <button id="enquireBtn" onclick="document.getElementById('enquireBtn').outerHTML='<div style=\\'text-align:center;padding:12px 0;\\'><svg width=\\'28\\' height=\\'28\\' fill=\\'none\\' viewBox=\\'0 0 24 24\\' stroke=\\'#22c55e\\' stroke-width=\\'2\\' style=\\'margin:0 auto 4px;\\'><path stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' d=\\'M5 13l4 4L19 7\\'/></svg><p style=\\'font-size:.875rem;font-weight:700;color:#111827;margin:0;\\'>Enquiry sent!</p><p style=\\'font-size:.75rem;color:#9ca3af;margin:4px 0 0;\\'>We\\'ll be in touch shortly</p></div>'"
+            style="width:100%;padding:12px;background:#4f46e5;color:#fff;border:none;border-radius:10px;font-size:0.875rem;font-weight:700;cursor:pointer;margin-bottom:8px;" onmouseover="this.style.background='#4338ca'" onmouseout="this.style.background='#4f46e5'">
+            Enquire now
+          </button>
+          <button onclick="APP.view='contact';render()" style="width:100%;padding:10px;background:#fff;color:#374151;border:1px solid #d1d5db;border-radius:10px;font-size:0.875rem;font-weight:600;cursor:pointer;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='#fff'">
+            Contact Settlement OS
+          </button>
+        </div>
+
+        <!-- Investment yield / status card -->
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,.06);padding:20px;">
+          ${l.rentalYield ? `
+            <p style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#9ca3af;margin:0 0 12px;">Investment snapshot</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div style="background:#f0fdf4;border-radius:10px;padding:12px;text-align:center;">
+                <p style="font-size:1.25rem;font-weight:800;color:#16a34a;margin:0;">${l.rentalYield}%</p>
+                <p style="font-size:0.7rem;color:#9ca3af;margin:4px 0 0;">Rental yield</p>
+              </div>
+              <div style="background:#eef2ff;border-radius:10px;padding:12px;text-align:center;">
+                <p style="font-size:1.25rem;font-weight:800;color:#4f46e5;margin:0;">$${l.weeklyRent?.toLocaleString('en-AU')}</p>
+                <p style="font-size:0.7rem;color:#9ca3af;margin:4px 0 0;">Per week</p>
+              </div>
+            </div>` : l.settled ? `
+            <p style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#9ca3af;margin:0 0 12px;">Settlement status</p>
+            <div style="display:flex;align-items:center;gap:8px;color:#16a34a;">
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <span style="font-size:0.875rem;font-weight:600;">Settled ${l.settlementDate||''}</span>
+            </div>` : `
+            <p style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#9ca3af;margin:0 0 12px;">Settlement status</p>
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+              <span style="font-size:0.875rem;color:#374151;">Conditions met</span>
+              <span style="font-size:0.875rem;font-weight:700;color:#4f46e5;">${l.conditionsMet||0}/${l.conditionsTotal||0}</span>
+            </div>
+            <div style="height:8px;background:#f3f4f6;border-radius:999px;overflow:hidden;margin-bottom:12px;">
+              <div style="height:100%;width:${condPct}%;background:#6366f1;border-radius:999px;"></div>
+            </div>
+            ${l.daysToSettle>=0?`<div style="text-align:center;padding:8px;border-radius:8px;font-size:0.75rem;font-weight:700;background:${l.daysToSettle<=14?'#fef2f2':'#eef2ff'};color:${l.daysToSettle<=14?'#dc2626':'#4f46e5'};">${l.daysToSettle} days to settlement</div>`:''}
+          `}
+        </div>
+
+        <!-- Investment pool (if linked) -->
+        ${l.poolId ? `
+        <div style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:16px;padding:20px;">
+          <p style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6366f1;margin:0 0 8px;">Investment available</p>
+          <p style="font-size:0.875rem;color:#3730a3;font-weight:500;margin:0 0 12px;">Fractional investment open for this property.</p>
+          <button onclick="APP.view='browse';APP.landingTab='invest';render()" style="width:100%;padding:10px;background:#4f46e5;color:#fff;border:none;border-radius:10px;font-size:0.875rem;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#4338ca'" onmouseout="this.style.background='#4f46e5'">
+            View investment pool →
+          </button>
+        </div>` : ''}
+
+      </div>
+    </div>`;
+
+  page.appendChild(main);
+
+  // Footer
+  const footer = document.createElement('footer');
+  footer.style.cssText = 'border-top:1px solid #e5e7eb;background:#f9fafb;margin-top:3rem;';
+  footer.innerHTML = `
+    <div style="max-width:1200px;margin:0 auto;padding:2rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;font-size:0.8rem;color:#9ca3af;">
+      <span>&copy; 2026 BALIPROP LLC · Settlement OS</span>
+      <div style="display:flex;gap:1.5rem;">
+        <button onclick="APP.view='browse';APP.landingTab='listings';render()" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:0.8rem;" onmouseover="this.style.color='#4f46e5'" onmouseout="this.style.color='#9ca3af'">All listings</button>
+        <button onclick="APP.view='contact';render()" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:0.8rem;" onmouseover="this.style.color='#4f46e5'" onmouseout="this.style.color='#9ca3af'">Contact</button>
+        <button onclick="APP.view='browse';APP.landingTab='invest';render()" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:0.8rem;" onmouseover="this.style.color='#4f46e5'" onmouseout="this.style.color='#9ca3af'">Invest</button>
+      </div>
+    </div>`;
+  page.appendChild(footer);
+
+  return page;
+}
+
+function updateThumbs() {
+  const idx = APP.listingDetailImgIdx;
+  const total = APP.currentListing?.images?.length || 1;
+  const counter = document.getElementById('imgCounter');
+  if (counter) counter.textContent = `${idx + 1} / ${total}`;
+  for (let i = 0; i < total; i++) {
+    const t = document.getElementById('thumb_' + i);
+    if (t) t.style.borderColor = i === idx ? '#fff' : 'rgba(255,255,255,0.4)';
+  }
 }
 
 // ── Admin Deal Messaging ───────────────────────────────────────────────────

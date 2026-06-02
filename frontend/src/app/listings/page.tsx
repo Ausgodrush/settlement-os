@@ -94,9 +94,10 @@ export default function ListingsPage() {
             const hasOpenPools = listingPool?.status === 'OPEN';
 
             return (
-              <div
+              <Link
                 key={deal.id}
-                className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md hover:border-indigo-200 transition-all group"
+                href={`/listings/${deal.id}`}
+                className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md hover:border-indigo-200 transition-all group block"
               >
                 <ListingImageCarousel images={deal.images} alt={deal.propertyAddress} />
 
@@ -179,7 +180,7 @@ export default function ListingsPage() {
                     </div>
                   </div>
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>

@@ -247,10 +247,6 @@ export default function ListingDetailClient({ id }: { id: string }) {
                 Buy Now — ${listing.purchasePrice.toLocaleString('en-AU')} {listing.currency}
               </button>
 
-              <Link href="/contact"
-                className="block w-full py-2.5 text-center border border-gray-300 text-sm font-semibold text-gray-700 rounded-xl hover:bg-gray-50 transition-colors">
-                Contact Settlement OS
-              </Link>
             </div>
 
             <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">

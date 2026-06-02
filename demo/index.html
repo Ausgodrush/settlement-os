@@ -408,7 +408,7 @@ let APP = {
   checkoutAmount: 0,
   showListingForm: false,
   buyNowListingId: null,
-  listingFormData: { address:'', suburb:'', state:'NSW', postcode:'', price:'', type:'House', beds:3, baths:2, parking:1, landSize:'', description:'', saleType:'invest', photos:[] },
+  listingFormData: { address:'', suburb:'', state:'NSW', postcode:'', price:'', type:'House', beds:3, baths:2, parking:1, landSize:'', description:'', saleType:'invest', photos:[], poolName:'', targetRaise:'', minInvestment:'5000', expectedYield:'', term:'5', payoutFrequency:'Quarterly' },
 };
 
 // Seed demo messages for deal d1
@@ -805,8 +805,42 @@ function submitNewListing() {
     image: f.photos[0] || null,
     images: f.photos.length ? f.photos : [],
   });
+  // Create investment pool if applicable
+  if ((f.saleType === 'invest' || f.saleType === 'both') && f.targetRaise) {
+    const poolId = 'p_' + newId;
+    const colors = ['from-indigo-400 to-blue-600','from-emerald-400 to-teal-600','from-rose-400 to-pink-600','from-amber-400 to-orange-500'];
+    MOCK_POOLS.push({
+      id: poolId,
+      listingId: newId,
+      name: f.poolName || (f.address.split(' ').slice(-2).join(' ') + ' Fund'),
+      location: f.suburb + (f.state === 'BALI' ? ', Bali' : ', ' + f.state),
+      country: f.state === 'BALI' ? 'ID' : 'AU',
+      flag: f.state === 'BALI' ? '🇮🇩' : '🇦🇺',
+      targetRaise: parseFloat(f.targetRaise) || 500000,
+      amountRaised: 0,
+      minInvestment: parseFloat(f.minInvestment) || 5000,
+      expectedYield: parseFloat(f.expectedYield) || 7.0,
+      term: parseInt(f.term) || 5,
+      investorCount: 0,
+      maxInvestors: 50,
+      payoutFrequency: f.payoutFrequency || 'Quarterly',
+      status: 'OPEN',
+      currency: 'AUD',
+      imageUrl: f.photos[0] || 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=600&h=400&fit=crop',
+      images: f.photos.length ? f.photos : [],
+      propertyType: f.type,
+      beds: parseInt(f.beds) || 1,
+      baths: parseInt(f.baths) || 1,
+      landSize: f.landSize ? f.landSize + 'm²' : undefined,
+      description: f.description || 'Investment pool for ' + f.address + '.',
+      features: [],
+    });
+    // Also link pool back to the listing
+    const newListing = MOCK_LISTINGS.find(l => l.id === newId);
+    if (newListing) newListing.poolId = poolId;
+  }
   APP.showListingForm = false;
-  APP.listingFormData = { address:'', suburb:'', state:'NSW', postcode:'', price:'', type:'House', beds:3, baths:2, parking:1, landSize:'', description:'', saleType:'invest', photos:[] };
+  APP.listingFormData = { address:'', suburb:'', state:'NSW', postcode:'', price:'', type:'House', beds:3, baths:2, parking:1, landSize:'', description:'', saleType:'invest', photos:[], poolName:'', targetRaise:'', minInvestment:'5000', expectedYield:'', term:'5', payoutFrequency:'Quarterly' };
   showToast('Listing submitted for review. Our team will approve it shortly.');
 }
 </script>
@@ -2772,6 +2806,56 @@ function buildListingFormModal() {
             </button>`).join('')}
           </div>
         </div>
+
+        ${(f.saleType === 'invest' || f.saleType === 'both') ? `
+        <div style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:12px;padding:20px;">
+          <div class="flex items-center gap-2 mb-4">
+            <span class="text-lg">📊</span>
+            <div>
+              <p class="text-sm font-bold text-indigo-800">Investment Pool Details</p>
+              <p class="text-xs text-indigo-500 mt-0.5">Configure how investors can buy into this property</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="col-span-2">
+              <label class="block text-xs font-medium text-gray-600 mb-1">Fund / Pool Name</label>
+              <input type="text" value="${f.poolName}" oninput="APP.listingFormData.poolName=this.value"
+                placeholder="e.g. Norwood Residential Fund"
+                class="w-full border border-indigo-200 bg-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Target Raise (AUD) <span class="text-rose-500">*</span></label>
+              <input type="number" min="0" value="${f.targetRaise}" oninput="APP.listingFormData.targetRaise=this.value"
+                placeholder="e.g. 500000"
+                class="w-full border border-indigo-200 bg-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Minimum Investment (AUD)</label>
+              <input type="number" min="500" value="${f.minInvestment}" oninput="APP.listingFormData.minInvestment=this.value"
+                placeholder="e.g. 5000"
+                class="w-full border border-indigo-200 bg-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Expected Yield (% p.a.)</label>
+              <input type="number" min="0" max="50" step="0.1" value="${f.expectedYield}" oninput="APP.listingFormData.expectedYield=this.value"
+                placeholder="e.g. 8.5"
+                class="w-full border border-indigo-200 bg-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Investment Term (years)</label>
+              <input type="number" min="1" max="30" value="${f.term}" oninput="APP.listingFormData.term=this.value"
+                placeholder="e.g. 5"
+                class="w-full border border-indigo-200 bg-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Payout Frequency</label>
+              <select oninput="APP.listingFormData.payoutFrequency=this.value"
+                class="w-full border border-indigo-200 bg-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                ${['Monthly','Quarterly','Half-Yearly','Annually'].map(p=>`<option value="${p}" ${f.payoutFrequency===p?'selected':''}>${p}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+        </div>` : ''}
 
       </div>
       <div class="flex gap-3 p-6 border-t border-gray-100">

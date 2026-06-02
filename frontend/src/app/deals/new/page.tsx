@@ -9,6 +9,19 @@ export default function NewDealPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
+  const [saleType, setSaleType] = useState<'deal' | 'invest' | 'both'>('deal');
+  const [pool, setPool] = useState({
+    poolName: '',
+    targetRaise: '',
+    minInvestment: '5000',
+    expectedYield: '',
+    term: '5',
+    payoutFrequency: 'Quarterly',
+  });
+
+  function setPoolField(field: string, value: string) {
+    setPool((prev) => ({ ...prev, [field]: value }));
+  }
   const fileRef = useRef<HTMLInputElement>(null);
 
   function handlePhotoFiles(files: FileList | null) {
@@ -195,6 +208,109 @@ export default function NewDealPage() {
                 placeholder="Any additional notes about this deal..."
               />
             </div>
+
+            {/* Sale Type */}
+            <div className="card p-6">
+              <h2 className="font-semibold text-gray-900 mb-1">Listing Type</h2>
+              <p className="text-xs text-gray-400 mb-4">How would you like to offer this property?</p>
+              <div className="grid grid-cols-3 gap-3">
+                {([
+                  { value: 'deal',   icon: '📋', label: 'Settlement Deal',  sub: 'Standard conveyancing deal' },
+                  { value: 'invest', icon: '📊', label: 'Investment Pool',   sub: 'Raise capital from investors' },
+                  { value: 'both',   icon: '✨', label: 'Both',              sub: 'Deal + fractional investment' },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setSaleType(opt.value)}
+                    className={`p-4 rounded-xl border-2 text-left transition-all ${saleType === opt.value ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-indigo-300'}`}
+                  >
+                    <div className="text-xl mb-1">{opt.icon}</div>
+                    <p className={`text-sm font-semibold ${saleType === opt.value ? 'text-indigo-700' : 'text-gray-800'}`}>{opt.label}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{opt.sub}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Investment Pool Details — shown when invest or both */}
+            {(saleType === 'invest' || saleType === 'both') && (
+              <div className="card p-6 border-indigo-200 bg-indigo-50">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-xl">📊</span>
+                  <div>
+                    <h2 className="font-semibold text-indigo-800">Investment Pool Details</h2>
+                    <p className="text-xs text-indigo-500 mt-0.5">Configure how investors can buy into this property</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <label className="label">Fund / Pool Name</label>
+                    <input className="input bg-white" placeholder="e.g. Norwood Residential Fund"
+                      value={pool.poolName} onChange={(e) => setPoolField('poolName', e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="label">Target Raise (AUD) *</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2 text-gray-400 text-sm">$</span>
+                      <input className="input pl-7 bg-white" type="number" min="0" placeholder="500000"
+                        value={pool.targetRaise} onChange={(e) => setPoolField('targetRaise', e.target.value)} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="label">Minimum Investment (AUD)</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2 text-gray-400 text-sm">$</span>
+                      <input className="input pl-7 bg-white" type="number" min="500" placeholder="5000"
+                        value={pool.minInvestment} onChange={(e) => setPoolField('minInvestment', e.target.value)} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="label">Expected Yield (% p.a.)</label>
+                    <div className="relative">
+                      <input className="input pr-8 bg-white" type="number" min="0" max="50" step="0.1" placeholder="8.5"
+                        value={pool.expectedYield} onChange={(e) => setPoolField('expectedYield', e.target.value)} />
+                      <span className="absolute right-3 top-2 text-gray-400 text-sm">%</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="label">Investment Term (years)</label>
+                    <div className="relative">
+                      <input className="input pr-10 bg-white" type="number" min="1" max="30" placeholder="5"
+                        value={pool.term} onChange={(e) => setPoolField('term', e.target.value)} />
+                      <span className="absolute right-3 top-2 text-gray-400 text-sm">yrs</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="label">Payout Frequency</label>
+                    <select className="input bg-white" value={pool.payoutFrequency}
+                      onChange={(e) => setPoolField('payoutFrequency', e.target.value)}>
+                      {['Monthly', 'Quarterly', 'Half-Yearly', 'Annually'].map((p) => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Live preview */}
+                {pool.expectedYield && pool.targetRaise && (
+                  <div className="mt-4 p-3 bg-white border border-indigo-200 rounded-xl grid grid-cols-3 gap-3 text-center">
+                    <div>
+                      <p className="text-lg font-bold text-indigo-600">{pool.expectedYield}%</p>
+                      <p className="text-[10px] text-gray-400">Yield p.a.</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-gray-800">{pool.term}yr</p>
+                      <p className="text-[10px] text-gray-400">Term</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-gray-800">{pool.payoutFrequency}</p>
+                      <p className="text-[10px] text-gray-400">Payout</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Photos */}
             <div className="card p-6">

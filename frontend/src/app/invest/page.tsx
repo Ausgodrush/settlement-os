@@ -2,6 +2,7 @@
 import { useState, useCallback } from 'react';
 import Sidebar from '@/components/layout/Sidebar';
 import CheckoutModal from '@/components/invest/CheckoutModal';
+import Link from 'next/link';
 import { InvestPool, PLATFORM_FEE_RATE, CryptoSymbol, PaymentMethod } from '@/lib/investData';
 import { usePools } from '@/hooks/usePortfolio';
 import { useWallet } from '@/hooks/useWallet';
@@ -103,8 +104,9 @@ export default function InvestPage() {
             const pct = Math.min(Math.round((pool.amountRaised / pool.targetRaise) * 100), 100);
             const remaining = pool.targetRaise - pool.amountRaised;
             return (
-              <div
+              <Link
                 key={pool.id}
+                href={`/invest/${pool.id}`}
                 className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden group hover:shadow-md hover:border-indigo-200 transition-all flex flex-col"
               >
                 {/* Image */}
@@ -192,7 +194,7 @@ export default function InvestPage() {
                   <div className="mt-auto">
                     {pool.status === 'OPEN' ? (
                       <button
-                        onClick={() => setSelectedPool(pool)}
+                        onClick={(e) => { e.preventDefault(); setSelectedPool(pool); }}
                         className="w-full py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
                       >
                         Invest Now
@@ -204,7 +206,7 @@ export default function InvestPage() {
                     )}
                   </div>
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>

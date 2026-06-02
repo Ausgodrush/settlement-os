@@ -401,6 +401,7 @@ let APP = {
   adminDealMessagesParty: null,
   currentListing: null,
   listingDetailImgIdx: 0,
+  currentPool: null,
   platformFees: [],
   ownerWalletBalance: { AUD: 0, BTC: 0, ETH: 0, SOL: 0 },
   checkoutPoolId: null,
@@ -701,6 +702,12 @@ function buildView() {
   if (APP.view === 'browse')  { wrap.appendChild(buildBrowseLayout()); return wrap; }
   if (APP.view === 'login') { wrap.appendChild(buildLogin()); return wrap; }
   if (APP.view === 'contact') { wrap.appendChild(buildContact()); return wrap; }
+  if (APP.view === 'pool-detail') {
+    wrap.appendChild(buildPoolDetail());
+    if (APP.checkoutPoolId) wrap.appendChild(buildCheckoutModal());
+    if (APP.showPaymentModal) wrap.appendChild(buildPaymentModal());
+    return wrap;
+  }
   if (APP.view === 'listing-detail') {
     wrap.appendChild(buildListingDetail());
     if (APP.buyNowListingId) wrap.appendChild(buildBuyNowModal());
@@ -2758,7 +2765,13 @@ function buildInvest() {
     const isFunded = pool.status === 'FUNDED';
     const myInvestment = APP.portfolio.find(p => p.poolId === pool.id);
 
-    const card = el('div', `bg-white border rounded-2xl overflow-hidden transition-shadow ${isFunded ? 'border-gray-200 opacity-80' : 'border-gray-200 hover:shadow-md'}`);
+    const card = el('div', `bg-white border rounded-2xl overflow-hidden transition-shadow cursor-pointer ${isFunded ? 'border-gray-200 opacity-80' : 'border-gray-200 hover:shadow-md hover:border-indigo-200'}`);
+    card.onclick = (e) => {
+      if (e.target.closest('button') || e.target.closest('input')) return;
+      APP.currentPool = pool;
+      APP.view = 'pool-detail';
+      render();
+    };
     card.innerHTML = `
       <div class="h-40 bg-gradient-to-br ${listing?.color || 'from-gray-400 to-gray-600'} flex items-center justify-center relative overflow-hidden">
         <span class="text-5xl">${listing?.emoji || '🏠'}</span>
@@ -3471,6 +3484,256 @@ function buildContact() {
     </div>
   </footer>`;
 
+  return page;
+}
+
+// ── Investment Pool Detail Page ────────────────────────────────────────────
+function buildPoolDetail() {
+  const pool = APP.currentPool;
+  if (!pool) { APP.view = 'browse'; APP.landingTab = 'invest'; render(); return el('div'); }
+
+  const listing = MOCK_LISTINGS.find(l => l.id === pool.listingId);
+  const pct = Math.min(Math.round(pool.amountRaised / pool.targetRaise * 100), 100);
+  const remaining = pool.targetRaise - pool.amountRaised;
+  const slotsLeft = pool.maxInvestors - pool.investorCount;
+  const isOpen = pool.status === 'OPEN';
+  const minReturn = Math.round(pool.minInvestment * pool.expectedYield / 100);
+  const heroImg = pool.imageUrl || listing?.image || '';
+
+  function goBack() {
+    APP.view = 'browse'; APP.landingTab = 'invest';
+    APP.currentPool = null; render();
+  }
+
+  const page = document.createElement('div');
+  page.style.cssText = 'min-height:100vh;background:#fff;';
+
+  // ── Burger nav ──
+  const navId = 'poolDetailNav_' + Date.now();
+  const header = document.createElement('header');
+  header.style.cssText = 'position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid #e5e7eb;';
+  header.innerHTML = `
+    <div style="max-width:1200px;margin:0 auto;padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:60px;gap:1rem;">
+      <div style="position:relative;">
+        <button onclick="(function(){var d=document.getElementById('${navId}');var open=d.style.display==='block';d.style.display=open?'none':'block';document.getElementById('${navId}BI').style.opacity=open?'1':'0';document.getElementById('${navId}CI').style.opacity=open?'0':'1';})()"
+          style="display:flex;align-items:center;gap:8px;background:none;border:none;cursor:pointer;padding:0;">
+          <div style="width:32px;height:32px;background:#4f46e5;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          </div>
+          <span style="font-weight:700;color:#111827;font-size:1rem;">Settlement OS</span>
+          <div style="width:16px;height:16px;position:relative;margin-left:4px;">
+            <span id="${navId}BI" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:1;"><svg width="14" height="12" fill="#9ca3af" viewBox="0 0 18 14"><rect y="0" width="18" height="2" rx="1"/><rect y="6" width="18" height="2" rx="1"/><rect y="12" width="18" height="2" rx="1"/></svg></span>
+            <span id="${navId}CI" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#6b7280" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></span>
+          </div>
+        </button>
+        <div id="${navId}" style="display:none;position:absolute;top:calc(100% + 8px);left:0;width:192px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.12);z-index:60;padding:8px;">
+          ${[
+            {label:'Home',     action:`APP.view='landing';render()`},
+            {label:'Listings', action:`APP.view='browse';APP.landingTab='listings';render()`},
+            {label:'Invest',   action:`APP.view='browse';APP.landingTab='invest';render()`},
+            {label:'Contact',  action:`APP.view='contact';render()`},
+            ...(APP.currentUser?[{label:'Dashboard',action:`setView('dashboard')`},{label:'Deals',action:`setView('deals')`}]:[]),
+          ].map(i=>`<button onclick="${i.action};document.getElementById('${navId}').style.display='none';"
+            style="width:100%;display:flex;align-items:center;padding:10px 12px;border-radius:8px;font-size:.875rem;font-weight:500;color:#4b5563;background:none;border:none;cursor:pointer;text-align:left;"
+            onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='none'">${i.label}</button>`).join('')}
+          <div style="border-top:1px solid #f3f4f6;margin:4px 0;padding-top:4px;">
+            <button onclick="APP.view='login';render();document.getElementById('${navId}').style.display='none';"
+              style="width:100%;display:flex;align-items:center;padding:10px 12px;border-radius:8px;font-size:.875rem;font-weight:600;color:#4f46e5;background:none;border:none;cursor:pointer;"
+              onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='none'">Sign in →</button>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button onclick="(${goBack.toString()})()" style="font-size:.875rem;color:#6b7280;background:none;border:none;cursor:pointer;" onmouseover="this.style.color='#111827'" onmouseout="this.style.color='#6b7280'">← All pools</button>
+        <button onclick="APP.view='login';render()" style="padding:.5rem 1rem;background:#4f46e5;color:#fff;border:none;border-radius:8px;font-size:.875rem;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#4338ca'" onmouseout="this.style.background='#4f46e5'">Sign in →</button>
+      </div>
+    </div>`;
+  page.appendChild(header);
+
+  // ── Hero ──
+  const hero = document.createElement('div');
+  hero.style.cssText = 'position:relative;height:420px;background:#111827;overflow:hidden;';
+  hero.innerHTML = `
+    ${heroImg ? `<img src="${heroImg}" style="width:100%;height:100%;object-fit:cover;" alt="${pool.name}"/>` : `<div style="width:100%;height:100%;background:linear-gradient(135deg,#4f46e5,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:5rem;">${listing?.emoji||'🏠'}</div>`}
+    <div style="position:absolute;inset:0;background:linear-gradient(to top, rgba(0,0,0,.7) 0%, rgba(0,0,0,.15) 60%, transparent 100%);"></div>
+    <div style="position:absolute;bottom:0;left:0;right:0;padding:2rem;max-width:1200px;margin:0 auto;display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <span style="font-size:1.5rem;">${pool.flag}</span>
+          <span style="padding:4px 12px;border-radius:999px;font-size:0.75rem;font-weight:700;background:${isOpen?'#22c55e':'#6366f1'};color:#fff;">${isOpen?'Open for Investment':pool.status==='FUNDED'?'✓ Fully Funded':'Closed'}</span>
+        </div>
+        <h1 style="font-size:clamp(1.5rem,4vw,2.5rem);font-weight:900;color:#fff;margin:0 0 4px;line-height:1.1;">${pool.name}</h1>
+        <p style="color:rgba(255,255,255,.7);font-size:0.95rem;margin:0;">${pool.location} · ${pool.propertyType}</p>
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <div style="text-align:center;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border-radius:12px;padding:12px 20px;">
+          <p style="font-size:1.75rem;font-weight:900;color:#4ade80;margin:0;">${pool.expectedYield}%</p>
+          <p style="font-size:0.7rem;color:rgba(255,255,255,.7);margin:4px 0 0;">Expected yield p.a.</p>
+        </div>
+        <div style="text-align:center;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border-radius:12px;padding:12px 20px;">
+          <p style="font-size:1.75rem;font-weight:900;color:#fff;margin:0;">${pool.term}yr</p>
+          <p style="font-size:0.7rem;color:rgba(255,255,255,.7);margin:4px 0 0;">Term</p>
+        </div>
+      </div>
+    </div>`;
+  page.appendChild(hero);
+
+  // ── Main content ──
+  const main = document.createElement('div');
+  main.style.cssText = 'max-width:1200px;margin:0 auto;padding:2.5rem 1.5rem;';
+  main.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 320px;gap:2.5rem;align-items:start;">
+
+      <!-- Left -->
+      <div>
+        <!-- Quick stats -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:2rem;">
+          ${[
+            {label:'Min. investment', value:'$'+pool.minInvestment.toLocaleString('en-AU')},
+            {label:'Payout',          value:pool.payoutFrequency},
+            {label:'Investors',       value:pool.investorCount+' / '+pool.maxInvestors},
+            {label:'Est. on min.',    value:'$'+minReturn.toLocaleString('en-AU')+'/yr'},
+          ].map(s=>`
+            <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:12px;text-align:center;">
+              <p style="font-size:0.9rem;font-weight:700;color:#111827;margin:0;">${s.value}</p>
+              <p style="font-size:0.7rem;color:#9ca3af;margin:4px 0 0;">${s.label}</p>
+            </div>`).join('')}
+        </div>
+
+        <!-- Description -->
+        <div style="margin-bottom:2rem;">
+          <h2 style="font-size:1.125rem;font-weight:800;color:#111827;margin:0 0 12px;">About this pool</h2>
+          <p style="font-size:0.9rem;color:#4b5563;line-height:1.75;margin:0;">${pool.description}</p>
+        </div>
+
+        <!-- Features -->
+        <div style="margin-bottom:2rem;">
+          <h2 style="font-size:1.125rem;font-weight:800;color:#111827;margin:0 0 12px;">Investment highlights</h2>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            ${(pool.features||[]).map(f=>`
+              <div style="display:flex;align-items:center;gap:8px;font-size:0.875rem;color:#374151;">
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#22c55e" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                ${f}
+              </div>`).join('')}
+          </div>
+        </div>
+
+        <!-- Funding progress -->
+        <div style="margin-bottom:2rem;">
+          <h2 style="font-size:1.125rem;font-weight:800;color:#111827;margin:0 0 12px;">Funding progress</h2>
+          <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:20px;">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:8px;">
+              <div><span style="font-size:1.75rem;font-weight:900;color:#4f46e5;">$${(pool.amountRaised/1000).toFixed(0)}k</span><span style="font-size:0.875rem;color:#9ca3af;margin-left:4px;">raised</span></div>
+              <span style="font-size:0.875rem;font-weight:600;color:#6b7280;">${pct}% of $${(pool.targetRaise/1000).toFixed(0)}k</span>
+            </div>
+            <div style="height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin-bottom:12px;">
+              <div style="height:100%;width:${pct}%;background:${isOpen?'#6366f1':'#9ca3af'};border-radius:999px;"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#9ca3af;">
+              <span>${pool.investorCount} investors · ${slotsLeft>0?slotsLeft+' slots remaining':'All slots filled'}</span>
+              ${isOpen&&remaining>0?`<span style="font-weight:600;color:#374151;">$${remaining.toLocaleString('en-AU')} to go</span>`:''}
+            </div>
+          </div>
+        </div>
+
+        <!-- Details table -->
+        <div>
+          <h2 style="font-size:1.125rem;font-weight:800;color:#111827;margin:0 0 12px;">Pool details</h2>
+          <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+            ${[
+              ['Pool name',       pool.name],
+              ['Property type',   pool.propertyType],
+              ['Location',        pool.location],
+              ['Beds / Baths',    pool.beds+'BR · '+pool.baths+' bath'+(pool.landSize?' · '+pool.landSize:'')],
+              ['Target raise',    '$'+pool.targetRaise.toLocaleString('en-AU')+' AUD'],
+              ['Min. investment', '$'+pool.minInvestment.toLocaleString('en-AU')+' AUD'],
+              ['Expected yield',  pool.expectedYield+'% p.a.'],
+              ['Term',            pool.term+' years'],
+              ['Payout',          pool.payoutFrequency],
+              ['Max investors',   pool.maxInvestors+''],
+              ['Pool ID',         pool.id.toUpperCase()],
+            ].map(([l,v],i,arr)=>`
+              <div style="display:flex;align-items:flex-start;padding:12px 20px;gap:16px;${i<arr.length-1?'border-bottom:1px solid #e5e7eb;':''}">
+                <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#9ca3af;width:130px;flex-shrink:0;padding-top:2px;">${l}</span>
+                <span style="font-size:0.875rem;color:#1f2937;">${v}</span>
+              </div>`).join('')}
+          </div>
+        </div>
+      </div>
+
+      <!-- Right sidebar -->
+      <div style="position:sticky;top:72px;display:flex;flex-direction:column;gap:16px;">
+
+        <!-- Invest CTA -->
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,.06);padding:20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <div><p style="font-size:1.75rem;font-weight:900;color:#4f46e5;margin:0;">${pool.expectedYield}%</p><p style="font-size:0.7rem;color:#9ca3af;margin:0;">Expected yield p.a.</p></div>
+            <div style="text-align:right;"><p style="font-size:1.25rem;font-weight:700;color:#111827;margin:0;">${pool.term}yr</p><p style="font-size:0.7rem;color:#9ca3af;margin:0;">Term</p></div>
+          </div>
+          ${isOpen ? `
+            <div style="margin-bottom:8px;">
+              <input id="poolDetailAmt" type="number" min="${pool.minInvestment}" placeholder="Amount (AUD)"
+                style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:10px;font-size:0.875rem;outline:none;box-sizing:border-box;margin-bottom:8px;"
+                onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#d1d5db'"/>
+              <button onclick="openCheckout('${pool.id}','poolDetailAmt')"
+                style="width:100%;padding:13px;background:#4f46e5;color:#fff;border:none;border-radius:10px;font-size:0.9rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;"
+                onmouseover="this.style.background='#4338ca'" onmouseout="this.style.background='#4f46e5'">
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                Invest from $${pool.minInvestment.toLocaleString('en-AU')} AUD
+              </button>
+            </div>` : `
+            <div style="width:100%;padding:12px;background:#f3f4f6;color:#6b7280;border-radius:10px;text-align:center;font-size:0.875rem;font-weight:600;margin-bottom:8px;">
+              ${pool.status==='FUNDED'?'✓ Fully Funded':'Pool Closed'}
+            </div>`}
+          <p style="font-size:0.7rem;color:#9ca3af;text-align:center;margin:4px 0 0;">Min. $${pool.minInvestment.toLocaleString('en-AU')} AUD · 2% platform fee</p>
+        </div>
+
+        <!-- Pool snapshot -->
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,.06);padding:20px;">
+          <p style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#9ca3af;margin:0 0 12px;">Pool snapshot</p>
+          ${[
+            ['Investors',      pool.investorCount+' / '+pool.maxInvestors],
+            ['Capital raised', '$'+(pool.amountRaised/1000).toFixed(0)+'k AUD'],
+            ['Payout',         pool.payoutFrequency],
+            ['Est. on min.',   '+$'+minReturn.toLocaleString('en-AU')+'/yr'],
+          ].map(([l,v])=>`
+            <div style="display:flex;justify-content:space-between;font-size:0.875rem;margin-bottom:10px;">
+              <span style="color:#6b7280;">${l}</span>
+              <span style="font-weight:600;color:${l==='Est. on min.'?'#16a34a':'#111827'};">${v}</span>
+            </div>`).join('')}
+        </div>
+
+        <!-- Crypto equiv -->
+        <div style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:16px;padding:20px;">
+          <p style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6366f1;margin:0 0 12px;">Pay with crypto</p>
+          ${[
+            {sym:'₿',c:'BTC',fmt:(pool.minInvestment/68420).toFixed(6)},
+            {sym:'Ξ',c:'ETH',fmt:(pool.minInvestment/3518).toFixed(4)},
+            {sym:'◎',c:'SOL',fmt:(pool.minInvestment/182).toFixed(2)},
+          ].map(x=>`
+            <div style="display:flex;justify-content:space-between;font-size:0.875rem;margin-bottom:8px;">
+              <span style="color:#4338ca;font-weight:500;">${x.sym} ${x.c}</span>
+              <span style="font-weight:600;color:#3730a3;">${x.fmt}</span>
+            </div>`).join('')}
+          <p style="font-size:0.65rem;color:#818cf8;margin:8px 0 0;">Rates for min. investment. Live rates at checkout.</p>
+        </div>
+      </div>
+    </div>`;
+  page.appendChild(main);
+
+  // Footer
+  const footer = document.createElement('footer');
+  footer.style.cssText = 'border-top:1px solid #e5e7eb;background:#f9fafb;margin-top:3rem;';
+  footer.innerHTML = `
+    <div style="max-width:1200px;margin:0 auto;padding:2rem 1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;font-size:0.8rem;color:#9ca3af;">
+      <span>&copy; 2026 BALIPROP LLC · Settlement OS</span>
+      <div style="display:flex;gap:1.5rem;">
+        <button onclick="APP.view='browse';APP.landingTab='invest';render()" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:0.8rem;" onmouseover="this.style.color='#4f46e5'" onmouseout="this.style.color='#9ca3af'">All pools</button>
+        <button onclick="APP.view='browse';APP.landingTab='listings';render()" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:0.8rem;" onmouseover="this.style.color='#4f46e5'" onmouseout="this.style.color='#9ca3af'">Listings</button>
+        <button onclick="APP.view='contact';render()" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:0.8rem;" onmouseover="this.style.color='#4f46e5'" onmouseout="this.style.color='#9ca3af'">Contact</button>
+      </div>
+    </div>`;
+  page.appendChild(footer);
   return page;
 }
 

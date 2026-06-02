@@ -4207,7 +4207,7 @@ function buildListingDetail() {
         <div style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:16px;padding:20px;">
           <p style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6366f1;margin:0 0 8px;">Investment available</p>
           <p style="font-size:0.875rem;color:#3730a3;font-weight:500;margin:0 0 12px;">Fractional investment open for this property.</p>
-          <button onclick="APP.view='browse';APP.landingTab='invest';render()" style="width:100%;padding:10px;background:#4f46e5;color:#fff;border:none;border-radius:10px;font-size:0.875rem;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#4338ca'" onmouseout="this.style.background='#4f46e5'">
+          <button onclick="(function(){var p=MOCK_POOLS.find(function(x){return x.id==='${l.poolId}'});if(p){APP.currentPool=p;APP.view='pool-detail';render();}else{APP.view='browse';APP.landingTab='invest';render();}})()" style="width:100%;padding:10px;background:#4f46e5;color:#fff;border:none;border-radius:10px;font-size:0.875rem;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#4338ca'" onmouseout="this.style.background='#4f46e5'">
             View investment pool →
           </button>
         </div>` : ''}

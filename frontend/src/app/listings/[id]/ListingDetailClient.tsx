@@ -280,16 +280,6 @@ export default function ListingDetailClient({ id }: { id: string }) {
               )}
             </div>
 
-            {listing.poolId && (
-              <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-5">
-                <p className="text-xs font-semibold text-indigo-400 uppercase tracking-wide mb-2">Investment available</p>
-                <p className="text-sm text-indigo-800 font-medium mb-3">Fractional investment open for this property.</p>
-                <Link href={`/invest/${listing.poolId}`}
-                  className="block w-full py-2.5 text-center bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition-colors">
-                  View investment pool →
-                </Link>
-              </div>
-            )}
 
           </div>
         </div>

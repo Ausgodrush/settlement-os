@@ -3,12 +3,14 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { MOCK_LISTINGS } from '@/lib/mockListings';
+import BuyNowModal from '@/components/listings/BuyNowModal';
 
 export default function ListingDetailClient({ id }: { id: string }) {
   const router = useRouter();
   const listing = MOCK_LISTINGS.find((l) => l.id === id);
   const [imgIdx, setImgIdx] = useState(0);
   const [enquirySent, setEnquirySent] = useState(false);
+  const [showBuyModal, setShowBuyModal] = useState(false);
 
   if (!listing) {
     return (
@@ -186,6 +188,16 @@ export default function ListingDetailClient({ id }: { id: string }) {
                   <p className="text-xs text-gray-400">{listing.agent.role} · {listing.agent.firm}</p>
                 </div>
               </div>
+              <button
+                onClick={() => setShowBuyModal(true)}
+                className="w-full py-3.5 bg-gray-900 text-white text-sm font-bold rounded-xl hover:bg-black transition-colors mb-2 flex items-center justify-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+                Buy Now — ${listing.purchasePrice.toLocaleString('en-AU')} {listing.currency}
+              </button>
+
               {enquirySent ? (
                 <div className="text-center py-3">
                   <svg className="w-7 h-7 text-green-500 mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -262,6 +274,13 @@ export default function ListingDetailClient({ id }: { id: string }) {
           </div>
         </div>
       </footer>
+
+      {showBuyModal && (
+        <BuyNowModal
+          listing={listing}
+          onClose={() => setShowBuyModal(false)}
+        />
+      )}
 
     </div>
   );

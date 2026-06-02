@@ -1,5 +1,5 @@
 'use client';
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/layout/Sidebar';
 import { deals as dealsApi } from '@/lib/api';
@@ -8,6 +8,21 @@ export default function NewDealPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [photos, setPhotos] = useState<string[]>([]);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  function handlePhotoFiles(files: FileList | null) {
+    if (!files) return;
+    Array.from(files).forEach((file) => {
+      if (photos.length >= 10) return;
+      const url = URL.createObjectURL(file);
+      setPhotos((prev) => prev.length < 10 ? [...prev, url] : prev);
+    });
+  }
+
+  function removePhoto(idx: number) {
+    setPhotos((prev) => prev.filter((_, i) => i !== idx));
+  }
   const [form, setForm] = useState({
     propertyAddress: '',
     propertySuburb: '',
@@ -179,6 +194,56 @@ export default function NewDealPage() {
                 onChange={(e) => set('notes', e.target.value)}
                 placeholder="Any additional notes about this deal..."
               />
+            </div>
+
+            {/* Photos */}
+            <div className="card p-6">
+              <h2 className="font-semibold text-gray-900 mb-1">Photos</h2>
+              <p className="text-xs text-gray-400 mb-4">Up to 10 photos — first photo becomes the cover image</p>
+
+              {photos.length > 0 && (
+                <div className="grid grid-cols-4 gap-2 mb-4">
+                  {photos.map((url, i) => (
+                    <div key={url} className="relative group aspect-square rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+                      <img src={url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(i)}
+                        className="absolute top-1 right-1 w-5 h-5 bg-black/60 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity leading-none"
+                        title="Remove"
+                      >
+                        ×
+                      </button>
+                      {i === 0 && (
+                        <span className="absolute bottom-1 left-1 text-[9px] font-semibold bg-indigo-600 text-white px-1.5 py-0.5 rounded">
+                          Cover
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {photos.length < 10 && (
+                <>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => handlePhotoFiles(e.target.files)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    className="w-full border-2 border-dashed border-gray-300 rounded-xl py-5 px-4 text-center hover:border-indigo-400 hover:bg-indigo-50 transition-colors"
+                  >
+                    <p className="text-sm text-gray-500">📷 Click to add photos</p>
+                    <p className="text-xs text-gray-400 mt-0.5">JPEG · PNG · WEBP — select multiple at once</p>
+                  </button>
+                </>
+              )}
             </div>
 
             {error && (

@@ -408,7 +408,7 @@ let APP = {
   checkoutAmount: 0,
   showListingForm: false,
   buyNowListingId: null,
-  listingFormData: { address:'', suburb:'', state:'NSW', postcode:'', price:'', type:'House', beds:3, baths:2, parking:1, landSize:'', description:'', saleType:'invest' },
+  listingFormData: { address:'', suburb:'', state:'NSW', postcode:'', price:'', type:'House', beds:3, baths:2, parking:1, landSize:'', description:'', saleType:'invest', photos:[] },
 };
 
 // Seed demo messages for deal d1
@@ -754,6 +754,33 @@ function confirmBuyNow() {
   showToast(`Purchase initiated via ${labels[pm]||'payment'}. Our settlement team will be in touch.`);
 }
 
+function addListingPhotos(input) {
+  const files = Array.from(input.files);
+  files.forEach(file => {
+    if (APP.listingFormData.photos.length >= 10) return;
+    APP.listingFormData.photos.push(URL.createObjectURL(file));
+  });
+  renderListingPhotoGrid();
+  input.value = '';
+}
+
+function removeListingPhoto(idx) {
+  APP.listingFormData.photos.splice(idx, 1);
+  renderListingPhotoGrid();
+}
+
+function renderListingPhotoGrid() {
+  const grid = document.getElementById('listingPhotoGrid');
+  if (!grid) return;
+  grid.innerHTML = APP.listingFormData.photos.map((url, i) => `
+    <div class="relative group aspect-square rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+      <img src="${url}" class="w-full h-full object-cover"/>
+      <button onclick="removeListingPhoto(${i})" title="Remove"
+        class="absolute top-1 right-1 w-5 h-5 bg-black/60 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity leading-none">×</button>
+      ${i===0?`<span class="absolute bottom-1 left-1 text-[9px] font-semibold bg-indigo-600 text-white px-1.5 py-0.5 rounded">Cover</span>`:''}
+    </div>`).join('');
+}
+
 function submitNewListing() {
   const f = APP.listingFormData;
   if (!f.address || !f.suburb || !f.price || !f.postcode) { showToast('Please fill in all required fields', 'error'); return; }
@@ -775,9 +802,11 @@ function submitNewListing() {
     color: colors[Math.floor(Math.random()*colors.length)],
     emoji: emojis[f.type] || '🏠',
     listingRef: 'REF-' + newId.slice(-6).toUpperCase(),
+    image: f.photos[0] || null,
+    images: f.photos.length ? f.photos : [],
   });
   APP.showListingForm = false;
-  APP.listingFormData = { address:'', suburb:'', state:'NSW', postcode:'', price:'', type:'House', beds:3, baths:2, parking:1, landSize:'', description:'', saleType:'invest' };
+  APP.listingFormData = { address:'', suburb:'', state:'NSW', postcode:'', price:'', type:'House', beds:3, baths:2, parking:1, landSize:'', description:'', saleType:'invest', photos:[] };
   showToast('Listing submitted for review. Our team will approve it shortly.');
 }
 </script>
@@ -2716,6 +2745,18 @@ function buildListingFormModal() {
         </div>
 
         <div>
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Photos <span class="text-gray-400 font-normal normal-case">(up to 10 — first photo is the cover)</span></p>
+          <div id="listingPhotoGrid" class="grid grid-cols-4 gap-2 mb-3"></div>
+          <label class="block cursor-pointer">
+            <input type="file" accept="image/*" multiple class="hidden" onchange="addListingPhotos(this)"/>
+            <div class="border-2 border-dashed border-gray-300 rounded-xl py-4 px-3 text-center hover:border-indigo-400 hover:bg-indigo-50 transition-colors">
+              <p class="text-sm text-gray-500">📷 Click to add photos</p>
+              <p class="text-xs text-gray-400 mt-0.5">JPEG · PNG · WEBP — select multiple at once</p>
+            </div>
+          </label>
+        </div>
+
+        <div>
           <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Sale Type</p>
           <div class="grid grid-cols-3 gap-3">
             ${[
@@ -2744,6 +2785,7 @@ function buildListingFormModal() {
         </button>
       </div>
     </div>`;
+  setTimeout(renderListingPhotoGrid, 0);
   return overlay;
 }
 

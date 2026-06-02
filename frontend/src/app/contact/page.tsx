@@ -19,10 +19,20 @@ export default function ContactPage() {
     setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 1000));
+    const subject = encodeURIComponent(form.suburbs || 'Enquiry via Settlement OS');
+    const body = encodeURIComponent(
+      [
+        form.name  ? `Name: ${form.name}`    : '',
+        form.email ? `Email: ${form.email}`  : '',
+        form.phone ? `Phone: ${form.phone}`  : '',
+        '',
+        form.message,
+      ].filter(Boolean).join('\n')
+    );
+    window.location.href = `mailto:contact@settlementos.com.au?subject=${subject}&body=${body}`;
     setSubmitting(false);
     setSubmitted(true);
   }

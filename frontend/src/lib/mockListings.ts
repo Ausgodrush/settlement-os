@@ -38,7 +38,7 @@ export const MOCK_LISTINGS = [
   },
   {
     id: 'au-002',
-    poolId: 'p4',
+    poolId: null,
     referenceNo: 'AU-002',
     propertyAddress: '15 King William Road',
     suburb: 'Unley SA 5061, Australia',
@@ -107,7 +107,7 @@ export const MOCK_LISTINGS = [
   },
   {
     id: 'au-004',
-    poolId: 'p1',
+    poolId: null,
     referenceNo: 'AU-004',
     propertyAddress: '3 Moseley Square',
     suburb: 'Glenelg SA 5045, Australia',

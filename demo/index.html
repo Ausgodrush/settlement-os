@@ -471,21 +471,116 @@ function loginWithCredentials() {
   render();
 }
 
+// ── Condition helpers ──────────────────────────────────────────────────────
+function condActivity(deal, type, msg, icon, bg) {
+  deal.activity.unshift({ id:'a'+Date.now(), type, msg, role:APP.currentUser?.role||'', name:APP.currentUser?.name||'', time:'Just now', icon, bg });
+}
+
+function canActOnCondition(cond) {
+  if (!APP.currentUser) return false;
+  const role = APP.currentUser.role;
+  if (role === 'ADMIN') return true;
+  const a = (cond.assignedTo||'').toLowerCase();
+  if (!a) return true;
+  if (a.includes('buyer') && a.includes('conveyancer')) return role==='BUYER_CONVEYANCER';
+  if (a.includes('seller') && a.includes('conveyancer')) return role==='SELLER_CONVEYANCER';
+  if (a.includes('buyer')) return role==='BUYER'||role==='BUYER_CONVEYANCER';
+  if (a.includes('seller')) return role==='SELLER'||role==='SELLER_CONVEYANCER';
+  if (a.includes('agent')) return role==='AGENT'||role==='ADMIN';
+  return true;
+}
+
+function checkDealReadiness(deal) {
+  const allMet = deal.conditions.length > 0 && deal.conditions.every(c => c.status==='MET'||c.status==='WAIVED');
+  if (allMet && deal.status==='ACTIVE') {
+    if (isConveyancer()) {
+      showToast('🎉 All conditions met! You can approve the deal for settlement.', 'success');
+    } else {
+      showToast('All conditions met — awaiting conveyancer approval for settlement.');
+    }
+  }
+}
+
 function markConditionMet(dealId, condId) {
   const deal = APP.deals.find(d => d.id === dealId);
   const cond = deal.conditions.find(c => c.id === condId);
   cond.status = 'MET';
   cond.metAt = 'Just now';
-  deal.activity.unshift({
-    id: 'a'+Date.now(), type:'CONDITION_MET',
-    msg: `${APP.currentUser.name} marked "${cond.name}" as complete`,
-    role: APP.currentUser.role, time:'Just now',
-    icon:'✅', bg:'bg-green-50 border-green-100'
-  });
+  condActivity(deal, 'CONDITION_MET', `${APP.currentUser.name} marked "${cond.name}" as complete`, '✅', 'bg-green-50 border-green-100');
   APP.currentDeal = deal;
   APP.settlementValidated = false;
   APP.settlementResult = null;
-  showToast(`"${cond.name}" marked as met`);
+  showToast(`"${cond.name}" marked as complete`);
+  checkDealReadiness(deal);
+  render();
+}
+
+function requestConditionApproval(dealId, condId) {
+  const deal = APP.deals.find(d => d.id === dealId);
+  const cond = deal.conditions.find(c => c.id === condId);
+  cond.status = 'AWAITING_APPROVAL';
+  cond.submittedBy = APP.currentUser.name;
+  cond.submittedAt = 'Just now';
+  const verb = cond.type==='DOCUMENT_UPLOAD' ? 'uploaded document for' : 'requested approval on';
+  condActivity(deal, 'CONDITION_SUBMITTED', `${APP.currentUser.name} ${verb} "${cond.name}" — awaiting conveyancer approval`, '📤', 'bg-blue-50 border-blue-100');
+  APP.currentDeal = deal;
+  showToast(`Approval requested for "${cond.name}"`);
+  // notify conveyancer
+  const conveyancer = deal.parties.find(p => p.role?.includes('Conveyancer'));
+  if (conveyancer) condActivity(deal, 'SYSTEM', `Notification sent to ${conveyancer.name}: approval required on "${cond.name}"`, '🔔', 'bg-white border-gray-200');
+  render();
+}
+
+function approveCondition(dealId, condId) {
+  const deal = APP.deals.find(d => d.id === dealId);
+  const cond = deal.conditions.find(c => c.id === condId);
+  cond.status = 'MET';
+  cond.metAt = 'Just now';
+  condActivity(deal, 'CONDITION_MET', `${APP.currentUser.name} approved "${cond.name}"`, '✅', 'bg-green-50 border-green-100');
+  if (cond.submittedBy) {
+    const submitter = deal.parties.find(p => p.name === cond.submittedBy);
+    if (submitter) condActivity(deal, 'SYSTEM', `Notification sent to ${cond.submittedBy}: "${cond.name}" has been approved`, '🔔', 'bg-white border-gray-200');
+  }
+  APP.currentDeal = deal;
+  APP.settlementValidated = false;
+  APP.settlementResult = null;
+  showToast(`"${cond.name}" approved ✓`);
+  checkDealReadiness(deal);
+  render();
+}
+
+function rejectCondition(dealId, condId) {
+  const deal = APP.deals.find(d => d.id === dealId);
+  const cond = deal.conditions.find(c => c.id === condId);
+  const reason = prompt(`Reason for rejecting "${cond.name}":`);
+  if (reason === null) return;
+  cond.status = 'PENDING';
+  cond.rejectedReason = reason || 'No reason given';
+  delete cond.submittedBy;
+  delete cond.submittedAt;
+  condActivity(deal, 'CONDITION_REJECTED', `${APP.currentUser.name} rejected "${cond.name}"${reason?' — '+reason:''}`, '❌', 'bg-red-50 border-red-100');
+  const partyNotify = deal.parties.find(p => p.role && !p.role.includes('Conveyancer') && p.name !== APP.currentUser.name);
+  if (partyNotify) condActivity(deal, 'SYSTEM', `Notification sent to ${partyNotify.name}: "${cond.name}" needs resubmission`, '🔔', 'bg-white border-gray-200');
+  APP.currentDeal = deal;
+  showToast(`"${cond.name}" sent back for revision`, 'error');
+  render();
+}
+
+function waiveCondition(dealId, condId) {
+  const deal = APP.deals.find(d => d.id === dealId);
+  const cond = deal.conditions.find(c => c.id === condId);
+  const reason = prompt(`Reason for waiving "${cond.name}":`);
+  if (reason === null) return;
+  cond.status = 'WAIVED';
+  cond.waivedReason = reason || 'Waived by conveyancer';
+  cond.metAt = 'Just now';
+  condActivity(deal, 'CONDITION_WAIVED', `${APP.currentUser.name} waived "${cond.name}"${reason?' — '+reason:''}`, '〜', 'bg-amber-50 border-amber-100');
+  APP.currentDeal = deal;
+  APP.settlementValidated = false;
+  APP.settlementResult = null;
+  showToast(`"${cond.name}" waived`);
+  checkDealReadiness(deal);
+  render();
 }
 
 function addComment() {
@@ -1496,64 +1591,153 @@ function buildTimelineHTML(deal) {
 }
 
 function buildConditionsTab(deal) {
-  const wrap = el('div', 'space-y-2');
+  const wrap = el('div', 'space-y-3');
   if (deal.conditions.length === 0) {
     wrap.innerHTML = '<p class="text-sm text-gray-400 text-center py-6">No conditions configured.</p>';
     return wrap;
   }
+
   const met = condMetCount(deal);
-  const allMet = met === deal.conditions.length;
+  const total = deal.conditions.length;
+  const allMet = met === total;
+  const pct = Math.round(met / total * 100);
 
-  // Gate banner
-  const banner = el('div', `flex items-center gap-2 p-3 rounded-lg mb-3 text-sm font-medium border ${allMet?'bg-green-50 border-green-200 text-green-700':'bg-amber-50 border-amber-200 text-amber-700'}`);
-  banner.innerHTML = allMet
-    ? `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg> All conditions met — deal is ready to settle`
-    : `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg> ${deal.conditions.length-met} condition${deal.conditions.length-met!==1?'s':''} pending`;
-  wrap.appendChild(banner);
+  // ── Progress header ──────────────────────────────────────────────────────
+  const header = el('div', `p-4 rounded-xl border mb-1 ${allMet?'bg-green-50 border-green-200':'bg-white border-gray-200'}`);
+  header.innerHTML = `
+    <div class="flex items-center justify-between mb-2">
+      <span class="text-sm font-semibold ${allMet?'text-green-700':'text-gray-700'}">${allMet?'✅ All conditions met':'⏳ '+met+' of '+total+' conditions complete'}</span>
+      <span class="text-sm font-bold ${allMet?'text-green-600':'text-indigo-600'}">${pct}%</span>
+    </div>
+    <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+      <div class="h-full rounded-full transition-all ${allMet?'bg-green-500':'bg-indigo-500'}" style="width:${pct}%"></div>
+    </div>
+    ${allMet && deal.status==='ACTIVE' && isConveyancer()
+      ? `<p class="text-xs text-green-700 mt-2 font-medium">All conditions satisfied — use the Settlement panel to approve for settlement.</p>`
+      : !allMet
+        ? `<p class="text-xs text-gray-400 mt-2">${total-met} condition${total-met!==1?'s':''} still pending</p>`
+        : ''}`;
+  wrap.appendChild(header);
 
-  const statusBg = { MET:'bg-white border-gray-200', PENDING:'bg-white border-gray-200', WAIVED:'bg-amber-50 border-amber-200', FAILED:'bg-red-50 border-red-200' };
+  // ── Type badge colours ───────────────────────────────────────────────────
+  const typeBadge = { BOOLEAN_FLAG:'bg-indigo-50 text-indigo-600', DOCUMENT_UPLOAD:'bg-blue-50 text-blue-600', APPROVAL:'bg-purple-50 text-purple-600', EXTERNAL_CONFIRMATION:'bg-gray-100 text-gray-600' };
+  const typeLabel = { BOOLEAN_FLAG:'Flag', DOCUMENT_UPLOAD:'Document', APPROVAL:'Approval', EXTERNAL_CONFIRMATION:'External' };
 
+  // ── Condition cards ──────────────────────────────────────────────────────
   deal.conditions.forEach(cond => {
-    const card = el('div', `border rounded-lg p-4 ${statusBg[cond.status]||'bg-white border-gray-200'}`);
+    const isAwaiting  = cond.status === 'AWAITING_APPROVAL';
+    const isMet       = cond.status === 'MET';
+    const isWaived    = cond.status === 'WAIVED';
+    const isFailed    = cond.status === 'FAILED';
+    const isPending   = cond.status === 'PENDING';
+    const canAct      = canActOnCondition(cond);
+    const canApprove  = isConveyancer();
+
+    // Border colour
+    const borderCls = isMet?'border-green-200 bg-green-50':isWaived?'border-amber-200 bg-amber-50':isFailed?'border-red-200 bg-red-50':isAwaiting?'border-blue-200 bg-blue-50':'border-gray-200 bg-white';
+
+    const card = el('div', `border rounded-xl p-4 transition-colors ${borderCls}`);
+
+    // Status icon
+    const iconMap = { MET:'✅', WAIVED:'〜', FAILED:'❌', AWAITING_APPROVAL:'⏳', PENDING:'○' };
+
     card.innerHTML = `
-      <div class="flex items-start justify-between gap-3">
-        <div class="flex items-start gap-3 flex-1 min-w-0">
-          <span class="font-bold text-sm mt-0.5 ${cond.status==='MET'?'text-green-600':cond.status==='WAIVED'?'text-amber-600':cond.status==='FAILED'?'text-red-600':'text-gray-400'}">
-            ${cond.status==='MET'?'✓':cond.status==='WAIVED'?'~':cond.status==='FAILED'?'✗':'○'}
-          </span>
-          <div class="min-w-0">
-            <p class="text-sm font-medium text-gray-900">${cond.name}</p>
-            ${cond.desc?`<p class="text-xs text-gray-400 mt-0.5">${cond.desc}</p>`:''}
-            <div class="flex items-center gap-3 mt-1 text-xs text-gray-400">
-              ${cond.assignedTo?`<span>→ ${cond.assignedTo}</span>`:''}
-              ${cond.metAt?`<span class="text-green-600">Met ${cond.metAt}</span>`:''}
+      <div class="flex items-start gap-3">
+        <!-- Status icon -->
+        <span class="text-base mt-0.5 flex-shrink-0">${iconMap[cond.status]||'○'}</span>
+
+        <!-- Content -->
+        <div class="flex-1 min-w-0">
+          <div class="flex items-start justify-between gap-2 flex-wrap">
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-gray-900">${cond.name}</p>
+              ${cond.desc?`<p class="text-xs text-gray-400 mt-0.5">${cond.desc}</p>`:''}
             </div>
+            <!-- Type badge -->
+            <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded flex-shrink-0 ${typeBadge[cond.type]||'bg-gray-100 text-gray-600'}">${typeLabel[cond.type]||cond.type}</span>
           </div>
+
+          <!-- Meta row -->
+          <div class="flex items-center gap-3 mt-1.5 flex-wrap text-xs">
+            ${cond.assignedTo?`<span class="text-gray-400">→ <span class="font-medium text-gray-600">${cond.assignedTo}</span></span>`:''}
+            ${isMet?`<span class="text-green-600 font-medium">Met ${cond.metAt||'✓'}</span>`:''}
+            ${isWaived?`<span class="text-amber-600 font-medium">Waived${cond.waivedReason?' — '+cond.waivedReason:''}</span>`:''}
+            ${isAwaiting?`<span class="text-blue-600 font-medium">Submitted by ${cond.submittedBy||'party'} · Awaiting approval</span>`:''}
+            ${cond.rejectedReason&&isPending?`<span class="text-red-500 font-medium">Rejected: ${cond.rejectedReason} — please resubmit</span>`:''}
+          </div>
+
+          <!-- Action buttons -->
+          <div class="flex gap-2 mt-3 flex-wrap" id="condActions_${cond.id}"></div>
         </div>
-        <div class="flex-shrink-0 flex gap-2" id="actions-${cond.id}"></div>
       </div>`;
 
-    const actions = card.querySelector(`#actions-${cond.id}`);
-    if (cond.status === 'PENDING') {
-      const markBtn = btn('Mark Met',
-        'text-xs px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors',
-        () => markConditionMet(deal.id, cond.id));
-      actions.appendChild(markBtn);
-      if (isConveyancer()) {
-        const waiveBtn = btn('Waive',
+    const actions = card.querySelector(`#condActions_${cond.id}`);
+
+    if (isPending) {
+      if (canAct) {
+        if (cond.type === 'BOOLEAN_FLAG') {
+          // Direct mark complete
+          actions.appendChild(btn('✓ Mark Complete',
+            'text-xs px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium',
+            () => markConditionMet(deal.id, cond.id)));
+        } else if (cond.type === 'DOCUMENT_UPLOAD') {
+          // Simulated document upload
+          const fname = document.createElement('input');
+          fname.type = 'text'; fname.placeholder = 'Document name (e.g. Finance_Approval.pdf)';
+          fname.className = 'text-xs px-2.5 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 flex-1 min-w-0';
+          actions.appendChild(fname);
+          actions.appendChild(btn('📎 Upload',
+            'text-xs px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex-shrink-0',
+            () => {
+              if (!fname.value.trim()) { showToast('Enter a document name first', 'error'); return; }
+              cond.docName = fname.value.trim();
+              cond.submittedBy = APP.currentUser.name;
+              requestConditionApproval(deal.id, cond.id);
+            }));
+        } else if (cond.type === 'APPROVAL') {
+          // Request approval from conveyancer
+          actions.appendChild(btn('🔔 Request Approval',
+            'text-xs px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium',
+            () => requestConditionApproval(deal.id, cond.id)));
+        } else {
+          actions.appendChild(btn('✓ Mark Complete',
+            'text-xs px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium',
+            () => markConditionMet(deal.id, cond.id)));
+        }
+      } else {
+        // Cannot act — show who needs to act
+        const waiting = el('span', 'text-xs text-gray-400 italic');
+        waiting.textContent = `Waiting for ${cond.assignedTo||'assigned party'} to act`;
+        actions.appendChild(waiting);
+      }
+
+      // Conveyancer can always waive a pending condition
+      if (canApprove) {
+        actions.appendChild(btn('Waive',
           'text-xs px-3 py-1.5 bg-white text-amber-600 border border-amber-300 rounded-lg hover:bg-amber-50 transition-colors',
-          () => {
-            if (confirm(`Waive "${cond.name}"?`)) {
-              cond.status = 'WAIVED';
-              cond.metAt = 'Just now';
-              showToast(`"${cond.name}" waived`);
-            }
-          });
-        actions.appendChild(waiveBtn);
+          () => waiveCondition(deal.id, cond.id)));
       }
     }
+
+    if (isAwaiting) {
+      if (canApprove) {
+        // Conveyancer approves or rejects
+        actions.appendChild(btn('✓ Approve',
+          'text-xs px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium',
+          () => approveCondition(deal.id, cond.id)));
+        actions.appendChild(btn('✗ Reject',
+          'text-xs px-3 py-1.5 bg-white text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors font-medium',
+          () => rejectCondition(deal.id, cond.id)));
+      } else {
+        const waiting = el('span', 'text-xs text-blue-500 italic font-medium');
+        waiting.textContent = 'Awaiting conveyancer review…';
+        actions.appendChild(waiting);
+      }
+    }
+
     wrap.appendChild(card);
   });
+
   return wrap;
 }
 

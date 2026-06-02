@@ -1,20 +1,32 @@
 'use client';
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Sidebar from '@/components/layout/Sidebar';
 import DealTimeline from '@/components/deals/DealTimeline';
 import ConditionList from '@/components/deals/ConditionList';
 import ActivityFeed from '@/components/deals/ActivityFeed';
 import SettlementPanel from '@/components/deals/SettlementPanel';
+import MessagesTab from '@/components/deals/MessagesTab';
 import { useDeal } from '@/hooks/useDeals';
 import { useDealSocket } from '@/hooks/useWebSocket';
 import { useAuth } from '@/hooks/useAuth';
 import { DEAL_STATUS_LABELS, DEAL_STATUS_COLORS, ROLE_LABELS } from '@/types';
+
+const ROLE_COLORS: Record<string, string> = {
+  BUYER: 'bg-blue-100 text-blue-600',
+  SELLER: 'bg-rose-100 text-rose-600',
+  BUYER_CONVEYANCER: 'bg-indigo-100 text-indigo-600',
+  SELLER_CONVEYANCER: 'bg-amber-100 text-amber-600',
+  AGENT: 'bg-green-100 text-green-600',
+  ADMIN: 'bg-purple-100 text-purple-600',
+};
 
 export default function DealWorkspaceClient() {
   const { id } = useParams<{ id: string }>();
   const { deal, loading, error, refetch, updateLocal } = useDeal(id);
   const { user } = useAuth();
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<'overview' | 'messages'>('overview');
 
   useDealSocket(id, {
     'deal:updated': (data) => {
@@ -150,35 +162,80 @@ export default function DealWorkspaceClient() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            {deal.milestones && deal.milestones.length > 0 && (
-              <DealTimeline milestones={deal.milestones} />
-            )}
-            {deal.conditions && (
-              <ConditionList
-                dealId={deal.id}
-                conditions={deal.conditions}
-                onUpdate={refetch}
-                currentUserRole={user?.role}
-              />
-            )}
-          </div>
-          <div className="space-y-6">
-            <SettlementPanel
-              deal={deal}
-              currentUserRole={user?.role}
-              onStatusChange={refetch}
-            />
-            {deal.recentActivity !== undefined && (
-              <ActivityFeed
-                dealId={deal.id}
-                activities={deal.recentActivity || []}
-                onNewActivity={refetch}
-              />
-            )}
-          </div>
+        {/* Tab bar */}
+        <div className="flex gap-1 mb-6 border-b border-gray-200">
+          {(['overview', 'messages'] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-5 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
+                activeTab === tab
+                  ? 'text-indigo-600 border-indigo-500'
+                  : 'text-gray-500 border-transparent hover:text-gray-700'
+              }`}
+            >
+              {tab === 'overview' ? 'Overview' : (
+                <span className="flex items-center gap-1.5">
+                  Messages
+                  {deal.parties && (
+                    <span className="px-1.5 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500">
+                      {deal.parties.filter((p) => p.user?.name !== `${user?.firstName} ${user?.lastName}`).length}
+                    </span>
+                  )}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
+
+        {activeTab === 'overview' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              {deal.milestones && deal.milestones.length > 0 && (
+                <DealTimeline milestones={deal.milestones} />
+              )}
+              {deal.conditions && (
+                <ConditionList
+                  dealId={deal.id}
+                  conditions={deal.conditions}
+                  onUpdate={refetch}
+                  currentUserRole={user?.role}
+                />
+              )}
+            </div>
+            <div className="space-y-6">
+              <SettlementPanel
+                deal={deal}
+                currentUserRole={user?.role}
+                onStatusChange={refetch}
+              />
+              {deal.recentActivity !== undefined && (
+                <ActivityFeed
+                  dealId={deal.id}
+                  activities={deal.recentActivity || []}
+                  onNewActivity={refetch}
+                />
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'messages' && deal.parties && (
+          <div className="card p-5">
+            <MessagesTab
+              dealId={deal.id}
+              parties={deal.parties.map((p) => ({
+                id: p.id,
+                name: p.user?.name ?? p.id,
+                role: ROLE_LABELS[p.role as keyof typeof ROLE_LABELS] ?? p.role,
+                initials: (p.user?.name ?? '?').split(' ').map((w: string) => w[0]).join('').slice(0, 2),
+                color: ROLE_COLORS[p.role] ?? 'bg-gray-100 text-gray-600',
+              }))}
+              currentUserName={user ? `${user.firstName} ${user.lastName}` : ''}
+              currentUserRole={user?.role ?? ''}
+            />
+          </div>
+        )}
       </main>
     </div>
   );

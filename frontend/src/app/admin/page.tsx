@@ -1,10 +1,49 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Sidebar from '@/components/layout/Sidebar';
+import MessagesTab from '@/components/deals/MessagesTab';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { getPools, getPlatformFees, savePools, resetPools } from '@/lib/investStore';
 import { MOCK_POOLS, InvestPool, OWNER_WALLETS, CRYPTO_PRICES, CRYPTO_SYMBOLS, CryptoSymbol } from '@/lib/investData';
+
+const ADMIN_DEALS = [
+  {
+    id: 'd1',
+    referenceNo: 'PSOS-2024-0042',
+    address: '14 Glenelg Street, Norwood SA 5067',
+    status: 'ACTIVE',
+    parties: [
+      { id:'p1', name:'Jane Cooper',    role:"Buyer's Conveyancer", initials:'JC', color:'bg-indigo-100 text-indigo-600' },
+      { id:'p2', name:'Michael Torres', role:'Buyer',                initials:'MT', color:'bg-blue-100 text-blue-600' },
+      { id:'p3', name:'Sarah Chen',     role:'Seller',               initials:'SC', color:'bg-rose-100 text-rose-600' },
+      { id:'p4', name:'David Walsh',    role:"Seller's Conveyancer", initials:'DW', color:'bg-amber-100 text-amber-600' },
+      { id:'p5', name:'Emma Wilson',    role:'Agent',                initials:'EW', color:'bg-green-100 text-green-600' },
+    ],
+  },
+  {
+    id: 'd2',
+    referenceNo: 'PSOS-2024-0039',
+    address: '7 Jetty Road, Glenelg SA 5045',
+    status: 'READY',
+    parties: [
+      { id:'p6', name:'Lisa Park',    role:"Buyer's Conveyancer", initials:'LP', color:'bg-indigo-100 text-indigo-600' },
+      { id:'p7', name:'Tom Nguyen',   role:'Buyer',               initials:'TN', color:'bg-blue-100 text-blue-600' },
+      { id:'p8', name:'Ray Santos',   role:'Seller',              initials:'RS', color:'bg-rose-100 text-rose-600' },
+    ],
+  },
+  {
+    id: 'd3',
+    referenceNo: 'PSOS-2024-0051',
+    address: 'Villa Karang Sunset, Seminyak, Bali',
+    status: 'ACTIVE',
+    parties: [
+      { id:'p9',  name:'Chris Blake',  role:'Buyer',               initials:'CB', color:'bg-blue-100 text-blue-600' },
+      { id:'p10', name:'Wayan Sukerta', role:'Seller',              initials:'WS', color:'bg-rose-100 text-rose-600' },
+      { id:'p11', name:'Ni Luh Ayu',   role:"Seller's Conveyancer", initials:'NA', color:'bg-amber-100 text-amber-600' },
+    ],
+  },
+];
 
 export default function AdminPage() {
   const { user, loading } = useAuth();
@@ -12,6 +51,7 @@ export default function AdminPage() {
   const [pools, setPools] = useState<InvestPool[]>([]);
   const [fees, setFees] = useState(0);
   const [resetDone, setResetDone] = useState(false);
+  const [messagingDealId, setMessagingDealId] = useState<string | null>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -177,6 +217,76 @@ export default function AdminPage() {
                       </button>
                     )}
                   </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Active Deals — Admin Messaging */}
+        <section className="mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Active Deals</h2>
+              <p className="text-xs text-gray-400 mt-0.5">Open a deal to message its parties directly</p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {ADMIN_DEALS.map((deal) => {
+              const isOpen = messagingDealId === deal.id;
+              const statusColor = deal.status === 'ACTIVE'
+                ? 'bg-green-100 text-green-700'
+                : deal.status === 'READY'
+                ? 'bg-indigo-100 text-indigo-700'
+                : 'bg-gray-100 text-gray-500';
+              return (
+                <div key={deal.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                  <div className="p-4 flex items-center justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{deal.address}</p>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${statusColor}`}>
+                          {deal.status}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex -space-x-1">
+                          {deal.parties.slice(0, 5).map((p) => (
+                            <div key={p.id} className={`w-6 h-6 rounded-full ${p.color} flex items-center justify-center border-2 border-white flex-shrink-0`}>
+                              <span className="text-[8px] font-bold">{p.initials}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <span className="text-xs text-gray-400">{deal.parties.length} parties · {deal.referenceNo}</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setMessagingDealId(isOpen ? null : deal.id)}
+                      className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl transition-colors flex-shrink-0 ${
+                        isOpen
+                          ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          : 'border border-indigo-300 text-indigo-600 hover:bg-indigo-50'
+                      }`}
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round"
+                          d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                      </svg>
+                      {isOpen ? 'Close' : 'Message Parties'}
+                    </button>
+                  </div>
+
+                  {isOpen && (
+                    <div className="border-t border-gray-100 p-5">
+                      <MessagesTab
+                        dealId={deal.id}
+                        parties={deal.parties}
+                        currentUserName="Admin User"
+                        currentUserRole="ADMIN"
+                      />
+                    </div>
+                  )}
                 </div>
               );
             })}

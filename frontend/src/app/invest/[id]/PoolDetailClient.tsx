@@ -19,6 +19,7 @@ const NAV_LINKS = [
 export default function PoolDetailClient({ id }: { id: string }) {
   const router = useRouter();
   const pool = MOCK_POOLS.find((p) => p.id === id);
+  const [imgIdx, setImgIdx] = useState(0);
   const [navOpen, setNavOpen] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -46,6 +47,8 @@ export default function PoolDetailClient({ id }: { id: string }) {
     );
   }
 
+  const images = pool.images?.length ? pool.images : [pool.imageUrl];
+  const total  = images.length;
   const pct = Math.min(Math.round((pool.amountRaised / pool.targetRaise) * 100), 100);
   const remaining = pool.targetRaise - pool.amountRaised;
   const slotsLeft = pool.maxInvestors - pool.investorCount;
@@ -117,10 +120,42 @@ export default function PoolDetailClient({ id }: { id: string }) {
         </div>
       </nav>
 
-      {/* Hero */}
+      {/* Hero gallery */}
       <div className="relative bg-gray-900" style={{ height: 420 }}>
-        <img src={pool.imageUrl} alt={pool.name} className="w-full h-full object-cover" />
+        <img src={images[imgIdx]} alt={pool.name} className="w-full h-full object-cover transition-opacity duration-200" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+
+        {total > 1 && (
+          <>
+            <button onClick={() => setImgIdx((i) => (i - 1 + total) % total)}
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition-colors z-10">
+              <svg className="w-5 h-5 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
+              </svg>
+            </button>
+            <button onClick={() => setImgIdx((i) => (i + 1) % total)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition-colors z-10">
+              <svg className="w-5 h-5 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/>
+              </svg>
+            </button>
+          </>
+        )}
+
+        <div className="absolute bottom-[4.5rem] right-4 px-3 py-1 bg-black/60 text-white text-xs font-medium rounded-full z-10">
+          {imgIdx + 1} / {total}
+        </div>
+
+        {total > 1 && (
+          <div className="absolute bottom-[4.5rem] left-1/2 -translate-x-1/2 flex gap-2 z-10">
+            {images.map((src, i) => (
+              <button key={i} onClick={() => setImgIdx(i)}
+                className={`w-14 h-10 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 ${i === imgIdx ? 'border-white shadow-lg scale-105' : 'border-white/40 hover:border-white/80'}`}>
+                <img src={src} alt="" className="w-full h-full object-cover" />
+              </button>
+            ))}
+          </div>
+        )}
         <div className="absolute bottom-0 left-0 right-0 p-8 max-w-6xl mx-auto">
           <div className="flex items-end justify-between gap-4 flex-wrap">
             <div>

@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/layout/Sidebar';
 import { useDeals } from '@/hooks/useDeals';
@@ -176,33 +177,73 @@ export default function ConveyancerPipelinePage() {
 }
 
 function ActionCard({ deal }: { deal: Deal }) {
-  const isReady = deal.status === 'READY';
+  const [localStatus, setLocalStatus] = useState(deal.status);
+  const [done, setDone] = useState(false);
+  const isReady = localStatus === 'READY';
+
+  function handleApprove() {
+    if (!window.confirm(`Approve ${deal.propertyAddress} for settlement? All conditions have been verified.`)) return;
+    setLocalStatus('READY');
+  }
+
+  function handleExecute() {
+    if (!window.confirm(`Execute settlement for ${deal.propertyAddress}? This will trigger PEXA and release escrow.`)) return;
+    setLocalStatus('SETTLED');
+    setDone(true);
+  }
+
+  if (done) {
+    return (
+      <div className="card p-4 flex items-center gap-3 border-l-4 border-l-green-400 bg-green-50">
+        <span className="text-xl">🏠</span>
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-green-800 text-sm">{deal.propertyAddress}</p>
+          <p className="text-xs text-green-600 mt-0.5">Settlement executed — PEXA notified ✓</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <Link
-      href={`/deals/${deal.id}`}
-      className="card p-4 flex items-center justify-between hover:shadow-md transition-shadow border-l-4 border-l-red-400"
-    >
-      <div>
-        <p className="font-medium text-gray-900 text-sm">{deal.propertyAddress}</p>
-        <p className="text-xs text-gray-500 mt-0.5">
-          {deal.referenceNo} · ${deal.purchasePrice?.toLocaleString('en-AU')}
-        </p>
+    <div className="card p-4 border-l-4 border-l-red-400 hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-gray-900 text-sm truncate">{deal.propertyAddress}</p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {deal.referenceNo} · ${deal.purchasePrice?.toLocaleString('en-AU')}
+          </p>
+          <p className={`text-xs mt-1 font-medium ${isReady ? 'text-amber-700' : 'text-indigo-700'}`}>
+            {isReady ? '⚡ Ready to execute settlement' : '✅ All conditions met — awaiting approval'}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {isReady ? (
+            <button
+              onClick={handleExecute}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
+              </svg>
+              Execute Settlement
+            </button>
+          ) : (
+            <button
+              onClick={handleApprove}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              Approve for Settlement
+            </button>
+          )}
+          <Link href={`/deals/${deal.id}`} className="text-xs text-gray-400 hover:text-gray-700 transition-colors">
+            View →
+          </Link>
+        </div>
       </div>
-      <div className="flex items-center gap-3">
-        {isReady && (
-          <span className="text-xs font-medium text-amber-700 bg-amber-100 px-2 py-1 rounded-full">
-            Approve Settlement
-          </span>
-        )}
-        {!isReady && deal.conditionsSummary?.pending === 0 && (
-          <span className="text-xs font-medium text-indigo-700 bg-indigo-100 px-2 py-1 rounded-full">
-            All Conditions Met
-          </span>
-        )}
-        <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-        </svg>
-      </div>
-    </Link>
+    </div>
   );
 }

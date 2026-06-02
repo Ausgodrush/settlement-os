@@ -2095,19 +2095,57 @@ function buildConveyancer() {
   if (actionRequired.length > 0) {
     const container = page.querySelector('#actionCards');
     actionRequired.forEach(deal => {
-      const card = el('div', 'bg-white rounded-xl border border-gray-200 border-l-4 border-l-red-400 p-4 flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow');
-      card.onclick = () => setView('workspace', deal.id);
+      const isReady = deal.status === 'READY';
+      const card = el('div', 'bg-white rounded-xl border border-gray-200 border-l-4 border-l-red-400 p-4 hover:shadow-md transition-shadow');
       card.innerHTML = `
-        <div>
-          <p class="font-medium text-gray-900 text-sm">${deal.address.split(',')[0]}</p>
-          <p class="text-xs text-gray-400 mt-0.5">${deal.referenceNo} · ${fmtPrice(deal.price)}</p>
-        </div>
-        <div class="flex items-center gap-3">
-          ${deal.status==='READY'
-            ? '<span class="text-xs font-medium text-amber-700 bg-amber-100 px-2 py-1 rounded-full">Approve Settlement</span>'
-            : '<span class="text-xs font-medium text-indigo-700 bg-indigo-100 px-2 py-1 rounded-full">All Conditions Met</span>'}
-          <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        <div class="flex items-start justify-between gap-4">
+          <div class="min-w-0 cursor-pointer flex-1" onclick="setView('workspace','${deal.id}')">
+            <p class="font-semibold text-gray-900 text-sm truncate">${deal.address.split(',')[0]}</p>
+            <p class="text-xs text-gray-400 mt-0.5">${deal.referenceNo} · ${fmtPrice(deal.price)}</p>
+            <p class="text-xs mt-1 font-medium ${isReady?'text-amber-700':'text-indigo-700'}">
+              ${isReady ? '⚡ Ready to execute settlement' : '✅ All conditions met — awaiting approval'}
+            </p>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0" id="pipelineActions_${deal.id}"></div>
         </div>`;
+
+      const actions = card.querySelector(`#pipelineActions_${deal.id}`);
+
+      if (isReady) {
+        // Execute Settlement directly from pipeline
+        const execBtn = btn(
+          `<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg> Execute Settlement`,
+          'inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors',
+          () => {
+            if (!confirm(`Execute settlement for ${deal.address.split(',')[0]}? This will trigger PEXA and release escrow.`)) return;
+            APP.currentDeal = deal;
+            executeSettlement();
+            render();
+          }
+        );
+        actions.appendChild(execBtn);
+      } else {
+        // Approve for Settlement directly from pipeline
+        const approveBtn = btn(
+          `<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Approve for Settlement`,
+          'inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors',
+          () => {
+            if (!confirm(`Approve ${deal.address.split(',')[0]} for settlement? All conditions have been verified.`)) return;
+            APP.currentDeal = deal;
+            approveSettlement();
+            render();
+          }
+        );
+        actions.appendChild(approveBtn);
+      }
+
+      // Open workspace link
+      const viewBtn = btn('View deal →',
+        'text-xs text-gray-400 hover:text-gray-700 transition-colors',
+        () => setView('workspace', deal.id)
+      );
+      actions.appendChild(viewBtn);
+
       container.appendChild(card);
     });
   }

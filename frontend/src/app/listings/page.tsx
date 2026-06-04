@@ -70,7 +70,7 @@ export default function ListingsPage() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
             <p className="text-2xl font-bold text-blue-600">{activeCount}</p>
             <p className="text-sm text-gray-500 mt-0.5">Active settlements</p>

@@ -289,7 +289,7 @@ export default function PoolDetailClient({ id }: { id: string }) {
                   ['Pool ID',         pool.id.toUpperCase()],
                 ] as [string, string][]).map(([label, value]) => (
                   <div key={label} className="flex items-start px-5 py-3 gap-4">
-                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide w-36 flex-shrink-0 pt-0.5">{label}</span>
+                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide w-24 sm:w-36 flex-shrink-0 pt-0.5">{label}</span>
                     <span className="text-sm text-gray-800">{value}</span>
                   </div>
                 ))}

@@ -116,13 +116,13 @@ export default function ConveyancerPipelinePage() {
         </h2>
 
         {loading ? (
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="h-64 bg-gray-100 rounded-xl animate-pulse" />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {Object.entries(grouped).map(([status, statusDeals]) => (
               <div key={status} className="bg-gray-50 rounded-xl p-3 border border-gray-200">
                 <div className="flex items-center justify-between mb-3">
@@ -206,7 +206,7 @@ function ActionCard({ deal }: { deal: Deal }) {
 
   return (
     <div className="card p-4 border-l-4 border-l-red-400 hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="font-semibold text-gray-900 text-sm truncate">{deal.propertyAddress}</p>
           <p className="text-xs text-gray-500 mt-0.5">

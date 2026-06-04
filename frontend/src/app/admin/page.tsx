@@ -171,7 +171,7 @@ export default function AdminPage() {
             {pools.map((pool) => {
               const pct = Math.min(Math.round((pool.amountRaised / pool.targetRaise) * 100), 100);
               return (
-                <div key={pool.id} className="p-4 flex items-center gap-4">
+                <div key={pool.id} className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
                   <span className="text-xl flex-shrink-0">{pool.flag}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">

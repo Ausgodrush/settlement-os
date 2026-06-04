@@ -37,6 +37,55 @@ tailwind.config = {
     #app-sidebar, #browse-sidebar { width: 100% !important; min-height: unset !important; border-right: none !important; border-bottom: 1px solid #e5e7eb; }
     #app-main { overflow: visible; }
   }
+
+  /* ── Mobile responsive (≤767px) ───────────────────────────────────────── */
+  @media (max-width: 767px) {
+    /* Prevent horizontal overflow */
+    body, #app { overflow-x: hidden; }
+
+    /* Reduce padding on small screens */
+    .p-8 { padding: 1rem !important; }
+    .p-6 { padding: 1rem !important; }
+
+    /* Stack grids on mobile */
+    .grid.grid-cols-3, .grid.grid-cols-4 { grid-template-columns: repeat(2, 1fr) !important; }
+    .grid.grid-cols-3.md\\:grid-cols-3, .grid.xl\\:grid-cols-3 { grid-template-columns: 1fr !important; }
+
+    /* Kanban board — horizontal scroll on mobile instead of collapse */
+    #kanban { display: flex !important; overflow-x: auto !important; gap: 12px !important; padding-bottom: 8px; -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; }
+    #kanban > div { min-width: 200px !important; scroll-snap-align: start; flex-shrink: 0; }
+
+    /* Hero gallery thumbnails — smaller on mobile */
+    #thumbStrip button { width: 40px !important; height: 30px !important; }
+
+    /* Listing/pool detail: main + sidebar stacks */
+    .grid.lg\\:grid-cols-3, .grid.lg\\:grid-cols-2 { grid-template-columns: 1fr !important; }
+
+    /* Property detail label narrower */
+    [style*="width:140px"] { width: 90px !important; font-size: 0.65rem !important; }
+
+    /* Modal max-width */
+    .max-w-2xl, .max-w-md { max-width: calc(100vw - 2rem) !important; }
+    .mx-4 { margin-left: 0.75rem !important; margin-right: 0.75rem !important; }
+
+    /* Conveyancer action cards stack */
+    .border-l-red-400.p-4 > div:first-child { flex-direction: column !important; align-items: flex-start !important; }
+
+    /* Pool/listing hero — shorter on mobile */
+    [style*="height:420px"], [style*="height:480px"] { height: 260px !important; }
+
+    /* Invest quick stats: 2 cols on mobile */
+    .grid.sm\\:grid-cols-4 { grid-template-columns: repeat(2, 1fr) !important; }
+
+    /* Tab bars — wrap on mobile */
+    .flex.border-b.border-gray-200 { flex-wrap: wrap; }
+
+    /* Buy Now / checkout modals: full width */
+    .fixed.inset-0.z-50 > div[class*="max-w"] { max-width: calc(100vw - 1rem) !important; margin: 0.5rem !important; }
+
+    /* Admin deals section */
+    .flex.items-center.justify-between.gap-4 { flex-wrap: wrap; gap: 0.75rem; }
+  }
 </style>
 </head>
 <body class="bg-gray-50 text-gray-900 antialiased">

@@ -130,7 +130,7 @@ export default function ListingDetailClient({ id }: { id: string }) {
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
             {listing.images.map((src, i) => (
               <button key={i} onClick={() => setImgIdx(i)}
-                className={`w-14 h-10 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 ${i === imgIdx ? 'border-white shadow-lg scale-105' : 'border-white/40 hover:border-white/80'}`}>
+                className={`w-12 h-9 sm:w-14 sm:h-10 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 ${i === imgIdx ? 'border-white shadow-lg scale-105' : 'border-white/40 hover:border-white/80'}`}>
                 <img src={src} alt="" className="w-full h-full object-cover" />
               </button>
             ))}
@@ -212,7 +212,7 @@ export default function ListingDetailClient({ id }: { id: string }) {
                   ['Reference', listing.referenceNo],
                 ] as [string, string][]).map(([label, value]) => (
                   <div key={label} className="flex items-start px-5 py-3 gap-4">
-                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide w-36 flex-shrink-0 pt-0.5">{label}</span>
+                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide w-24 sm:w-36 flex-shrink-0 pt-0.5">{label}</span>
                     <span className="text-sm text-gray-800">{value}</span>
                   </div>
                 ))}
